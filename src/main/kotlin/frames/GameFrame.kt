@@ -32,6 +32,10 @@ class GameFrame : Application() {
     private lateinit var mainScene: Scene
     private lateinit var graphicsContext: GraphicsContext
 
+    //UI Elements
+    private lateinit var timePassedLabel: Label
+
+    //Resources
     private lateinit var space: Image
     private lateinit var sun: Image
 
@@ -42,6 +46,7 @@ class GameFrame : Application() {
 
     // use a set so duplicates are not possible
     private val currentlyActiveKeys = mutableSetOf<KeyCode>()
+    private var startTime = 0L
 
 override fun start(mainStage: Stage) {
     mainStage.title = "Kotlin HW - Nine Men's Morris"
@@ -49,8 +54,6 @@ override fun start(mainStage: Stage) {
     val root = HBox()
     val gameGroup = Group()
     val uiGroup = Group()
-
-    //uiGroup.minWidth(WIDTH_UI.toDouble())
 
     root.children.addAll(gameGroup, uiGroup)
 
@@ -67,56 +70,18 @@ override fun start(mainStage: Stage) {
     loadGraphics()
     loadUI(uiGroup)
 
-/*
-    val uiMainBox = VBox()
-    VBox.setVgrow(uiMainBox, Priority.ALWAYS)
-    uiMainBox.minWidth = WIDTH_UI.toDouble()
-    uiMainBox.alignment = Pos.CENTER
-
-    val uiTitleLabel = Label("Nine Men's Morris")
-    uiTitleLabel.font = Font("Arial", 25.0)
-
-    uiMainBox.children.add(uiTitleLabel)
-    uiGroup.children.add(uiMainBox)
-*/
-
-/*
-    val label1 = Label("Label 1")
-    label1.font = Font("Arial", 10.0)
-    label1.prefHeight = 10.0
-    val label2 = Label("Label 2")
-    val label3 = Label("Label 3")
-
-    val stackPane = StackPane(label1, label2, label3)
-    label1.layoutX = 100.0
-    label1.layoutY = 100.0
-    label2.layoutX = 200.0
-    label2.layoutY = label1.layoutY + label1.prefHeight
-    label3.layoutX = 300.0
-    label3.layoutY = 300.0
-
-    //uiGroup.children.add(stackPane)
-    uiGroup.children.addAll(label1, label2, label3)
-*/
-
-/*
-    val vbox = VBox()
-    val label1 = Label("Nine Men's Morris")
-    label1.font = Font("Arial", 25.0)
-    val label2 = Label("Label 2")
-
-    VBox.setVgrow(vbox, Priority.ALWAYS) // make the vbox expand to fill all available space
-    vbox.minWidth = 256.0
-    vbox.alignment = Pos.CENTER
-
-    vbox.children.addAll(label1, label2)
-    uiGroup.children.addAll(vbox)
-*/
-
     // Main loop
     object : AnimationTimer() {
         override fun handle(currentNanoTime: Long) {
             tickAndRender(currentNanoTime)
+
+            if (startTime == 0L) {
+                startTime = currentNanoTime
+            }
+            val elapsedTime = (currentNanoTime - startTime) / 1_000_000_000.0
+            val elapsedMinutes = elapsedTime / 60
+            val elapsedSeconds = elapsedTime % 60
+            timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
         }
     }.start()
     mainStage.show()
@@ -171,7 +136,7 @@ override fun start(mainStage: Stage) {
         instructionTextArea.isWrapText = true
         //instructionTextArea.alignment = Pos.CENTER
 
-        val timePassedLabel = inicLabel("Elapsed time: ..")
+        timePassedLabel = inicLabel("Elapsed time: ..")
 
         uiMainVBox.children.addAll(uiTitleLabel, playersNHBox, instructionTextArea)
         uiMainVBox.children.add(timePassedLabel)
