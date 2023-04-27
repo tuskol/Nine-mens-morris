@@ -35,6 +35,9 @@ class GameFrame : Application() {
     //UI Elements
     private lateinit var timePassedLabel: Label
 
+    //Game Elements
+    private lateinit var testPiece: Image
+
     //Resources
     private lateinit var space: Image
     private lateinit var sun: Image
@@ -67,13 +70,13 @@ override fun start(mainStage: Stage) {
 
     graphicsContext = canvas.graphicsContext2D
 
-    loadGraphics()
+    loadBoard()
     loadUI(uiGroup)
 
     // Main loop
     object : AnimationTimer() {
         override fun handle(currentNanoTime: Long) {
-            tickAndRender(currentNanoTime)
+            //tickAndRender(currentNanoTime)
 
             if (startTime == 0L) {
                 startTime = currentNanoTime
@@ -97,11 +100,38 @@ override fun start(mainStage: Stage) {
         }
     }
 
-    private fun loadGraphics() {
+    private fun loadBoard() {
         // prefixed with / to indicate that the files are
         // in the root of the "resources" folder
+
         space = Image(getResource("/space.png"))
-        sun = Image(getResource("/sun.png"))
+        // draw background
+        graphicsContext.drawImage(space, 0.0, 0.0)
+
+        val pHolder = Image(getResource("/pieceHolder.png"))
+        graphicsContext.drawImage(pHolder, 0.0, 0.0)
+        graphicsContext.drawImage(pHolder, 0.0, (HEIGHT-pHolder.height))
+
+        //sun = Image(getResource("/sun.png"))
+
+        testPiece = Image(getResource("/pieceWhite.png"))
+        graphicsContext.drawImage(testPiece, 10.0, 10.0)
+
+
+        //Teszteléshez lepakolja a korongokat
+        var moreTestPiecesW = mutableListOf<Image>()
+        var moreTestPiecesB = mutableListOf<Image>()
+        var i = 0
+        var x = 10.0
+        while (i < 9){
+            moreTestPiecesW.add(Image(getResource("/pieceWhite.png")))
+            graphicsContext.drawImage(moreTestPiecesW[i], x, 10.0)
+            moreTestPiecesB.add(Image(getResource("/pieceBlack.png")))
+            graphicsContext.drawImage(moreTestPiecesB[i], x, (HEIGHT-moreTestPiecesB[i].height) - 8.0)
+
+            x += moreTestPiecesW[i].width + 10
+            i++
+        }
     }
 
     private fun loadUI(parent: Group){
