@@ -20,6 +20,7 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
+import javafx.scene.shape.Line
 import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 import javafx.stage.Stage
@@ -31,6 +32,7 @@ class GameFrame : Application() {
         private const val WIDTH_GAME = 600
         private const val WIDTH_UI = 256
         private const val HEIGHT = 600
+        private const val SPACING = 15.0
     }
 
     private lateinit var mainScene: Scene
@@ -133,9 +135,37 @@ override fun start(mainStage: Stage) {
         val whitePiecePic = Image(getResource("/pieceWhite.png"))
         //TODO: valami figyelmeztetés ha nem ugynakkorák a képek
 
+
+        /*
+        var lmxs = mx - (fieldImage.width + fieldSpacing) * 1.0 + (fieldImage.width - 5.0) / 2.0
+        var lmys = my - (fieldImage.height + fieldSpacing) * 1.0 + (fieldImage.height - 5.0) / 2.0
+        var rmxs = mx + (fieldImage.width + fieldSpacing) * 1.0 + (fieldImage.width - 5.0) / 2.0
+        var rmys = my - (fieldImage.height + fieldSpacing) * 1.0 + (fieldImage.height - 5.0) / 2.0
+
+
+        val line = Line(lmxs, lmys, rmxs, rmys)
+        line.stroke = Color.RED
+        line.strokeWidth = 5.0
+        parent.children.add(line)
+*/
+
+
         //Drawing the fields
         var i = 1
-        while (i < 4){
+        while (i <= 3){
+            //draws the upper horizontal line
+            parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
+                arrayOf(false, false), arrayOf(true, false), i))
+            //draws the lower horizontal line
+            parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
+                arrayOf(false, true), arrayOf(true, true), i))
+            //draws the left vertical line
+            parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
+                arrayOf(false, false), arrayOf(false, true), i))
+            //draws the right vertical line
+            parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
+                arrayOf(true, false), arrayOf(true, true), i))
+
             //Left-middle horizontal line
             drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true), arrayOf(true, false))
             //Right-middle horizontal line
@@ -170,21 +200,44 @@ override fun start(mainStage: Stage) {
         }
     }
 
+    private fun makeLines(fieldImage:Image,
+                          centerPoints:Array<Double>,
+                          startPoint:Array<Boolean>,
+                          endPoint:Array<Boolean>,
+                          layer:Int,
+                          color: Color = Color.GRAY,
+                          lineWidth:Double = 20.0) : Line{
+
+        var smx = centerPoints[0] + (if (startPoint[0] === true) 1 else -1) *
+                (fieldImage.width + SPACING) * layer + (fieldImage.width) / 2.0
+        var smy = centerPoints[1] + (if (startPoint[1] === true) 1 else -1) *
+                (fieldImage.height + SPACING) * layer + (fieldImage.height) / 2.0
+
+        var emx = centerPoints[0] + (if (endPoint[0] === true) 1 else -1) *
+                (fieldImage.width + SPACING) * layer + (fieldImage.width) / 2.0
+        var emy = centerPoints[1] + (if (endPoint[1] === true) 1 else -1) *
+                (fieldImage.height + SPACING) * layer + (fieldImage.height) / 2.0
+
+        val line = Line(smx, smy, emx, emy)
+        line.stroke = color
+        line.strokeWidth = lineWidth
+        line.toBack()
+        return line
+    }
     private fun drawFields(fieldImage:Image,
                            centerPoints:Array<Double>,
                            layer:Int,
                            op:Array<Boolean>,
-                           k:Array<Boolean> = arrayOf(true, true),
-                           fieldSpacing:Double = 15.0){
+                           k:Array<Boolean> = arrayOf(true, true), ){
 
         //TODO: Field-ek kattinthatóvá tétele
 
 
         graphicsContext.drawImage(fieldImage,
             centerPoints[0] + (if (op[0] === true) 1 else -1) *
-                    ((if (k[0] === true) 1 else 0))*(fieldImage.width + fieldSpacing) * layer,
+                    ((if (k[0] === true) 1 else 0))*(fieldImage.width + SPACING) * layer,
             centerPoints[1] + (if (op[1] === true) 1 else -1) *
-                    ((if (k[1] === true) 1 else 0))*(fieldImage.height + fieldSpacing) * layer
+                    ((if (k[1] === true) 1 else 0))*(fieldImage.height + SPACING) * layer
         )
     }
     private  fun drawPieces(id:Int,
