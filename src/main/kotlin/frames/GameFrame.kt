@@ -1,6 +1,7 @@
 package frames
 
 import com.example.getResource
+import elements.Piece
 import javafx.animation.AnimationTimer
 import javafx.application.Application
 import javafx.event.EventHandler
@@ -11,7 +12,9 @@ import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.control.Label
 import javafx.scene.control.TextArea
+import javafx.scene.effect.DropShadow
 import javafx.scene.image.Image
+import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
@@ -21,12 +24,13 @@ import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 import javafx.stage.Stage
 
+//TODO: Az minta dolgokat kiszedni (mint a nap, meg a többi)
 class GameFrame : Application() {
 
     companion object {
-        private const val WIDTH_GAME = 512
+        private const val WIDTH_GAME = 600
         private const val WIDTH_UI = 256
-        private const val HEIGHT = 512
+        private const val HEIGHT = 600
     }
 
     private lateinit var mainScene: Scene
@@ -37,9 +41,11 @@ class GameFrame : Application() {
 
     //Game Elements
     private lateinit var testPiece: Image
+    private var previouslySelectedPiece: ImageView? = null
+    private val piecesList = mutableMapOf<Color, MutableList<Piece>>()
 
     //Resources
-    private lateinit var space: Image
+    private lateinit var backgroundImage: Image
     private lateinit var sun: Image
 
     private var sunX = WIDTH_GAME / 2
@@ -58,10 +64,11 @@ override fun start(mainStage: Stage) {
     val gameGroup = Group()
     val uiGroup = Group()
 
-    root.children.addAll(gameGroup, uiGroup)
-
     mainScene = Scene(root, (WIDTH_GAME + WIDTH_UI).toDouble(), HEIGHT.toDouble() )
+    mainStage.isResizable = false
     mainStage.scene = mainScene
+
+    root.children.addAll(gameGroup, uiGroup)
 
     val canvas = Canvas(WIDTH_GAME.toDouble(), HEIGHT.toDouble())
     gameGroup.children.add(canvas)
@@ -70,7 +77,10 @@ override fun start(mainStage: Stage) {
 
     graphicsContext = canvas.graphicsContext2D
 
-    loadBoard()
+    piecesList[Color.WHITE] = mutableListOf()
+    piecesList[Color.BLACK] = mutableListOf()
+
+    loadBoard(gameGroup)
     loadUI(uiGroup)
 
     // Main loop
@@ -100,38 +110,103 @@ override fun start(mainStage: Stage) {
         }
     }
 
-    private fun loadBoard() {
+    private fun loadBoard(parent: Group) {
         // prefixed with / to indicate that the files are
         // in the root of the "resources" folder
-
-        space = Image(getResource("/space.png"))
+        backgroundImage = Image(getResource("/space.png"))
         // draw background
-        graphicsContext.drawImage(space, 0.0, 0.0)
+        graphicsContext.drawImage(backgroundImage, 0.0, 0.0)
 
+        //draw piece holders
         val pHolder = Image(getResource("/pieceHolder.png"))
-        graphicsContext.drawImage(pHolder, 0.0, 0.0)
-        graphicsContext.drawImage(pHolder, 0.0, (HEIGHT-pHolder.height))
+        graphicsContext.drawImage(pHolder, (WIDTH_GAME-pHolder.width)/2.0 , 0.0)
+        graphicsContext.drawImage(pHolder, (WIDTH_GAME-pHolder.width)/2.0, (HEIGHT-pHolder.height))
 
-        //sun = Image(getResource("/sun.png"))
+        //draw the fields
+        val fieldSpacing = 15.0
 
-        testPiece = Image(getResource("/pieceWhite.png"))
-        graphicsContext.drawImage(testPiece, 10.0, 10.0)
+        var fieldImage = Image(getResource("/field.png"))
 
+        var mx = (WIDTH_GAME - fieldImage.width) / 2.0
+        var my = (HEIGHT - fieldImage.height) / 2.0
 
-        //Teszteléshez lepakolja a korongokat
-        var moreTestPiecesW = mutableListOf<Image>()
-        var moreTestPiecesB = mutableListOf<Image>()
-        var i = 0
-        var x = 10.0
-        while (i < 9){
-            moreTestPiecesW.add(Image(getResource("/pieceWhite.png")))
-            graphicsContext.drawImage(moreTestPiecesW[i], x, 10.0)
-            moreTestPiecesB.add(Image(getResource("/pieceBlack.png")))
-            graphicsContext.drawImage(moreTestPiecesB[i], x, (HEIGHT-moreTestPiecesB[i].height) - 8.0)
+        val whitePiecePic = Image(getResource("/pieceWhite.png"))
+        //TODO: valami figyelmeztetés ha nem ugynakkorák a képek
 
-            x += moreTestPiecesW[i].width + 10
+        //Drawing the fields
+        var i = 1
+        while (i < 4){
+            //Left-middle horizontal line
+            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true), arrayOf(true, false))
+            //Right-middle horizontal line
+            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false), arrayOf(true, false))
+            //Upper-middle vertical line
+            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false), arrayOf(false, true))
+            //Lower-middle vertical line
+            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true), arrayOf(false, true))
+            //Left-Upper diagonal line
+            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, false))
+            //Right-Upper diagonal line
+            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false))
+            //Left-Lower diagonal line
+            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true))
+            //Right-Lower diagonal line
+            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, true))
+
             i++
         }
+
+        //Initializing and drawing the pieces
+        i = 0
+        var x = (WIDTH_GAME-pHolder.width)/2.0 + 15.0
+        while (i < 9){
+            drawPieces(i, Color.WHITE, arrayOf(x, 10.0))
+            parent.children.add(piecesList[Color.WHITE]?.last())
+            drawPieces(i, Color.BLACK, arrayOf(x, (HEIGHT- whitePiecePic.height) - 8.0))
+            parent.children.add(piecesList[Color.BLACK]?.last())
+
+            x += whitePiecePic.width + 15
+            i++
+        }
+    }
+
+    private fun drawFields(fieldImage:Image,
+                           centerPoints:Array<Double>,
+                           layer:Int,
+                           op:Array<Boolean>,
+                           k:Array<Boolean> = arrayOf(true, true),
+                           fieldSpacing:Double = 15.0){
+
+        //TODO: Field-ek kattinthatóvá tétele
+
+
+        graphicsContext.drawImage(fieldImage,
+            centerPoints[0] + (if (op[0] === true) 1 else -1) *
+                    ((if (k[0] === true) 1 else 0))*(fieldImage.width + fieldSpacing) * layer,
+            centerPoints[1] + (if (op[1] === true) 1 else -1) *
+                    ((if (k[1] === true) 1 else 0))*(fieldImage.height + fieldSpacing) * layer
+        )
+    }
+    private  fun drawPieces(id:Int,
+                            color: Color,
+                            coordinates:Array<Double>){
+        var p = Piece(id, color)
+
+        p.setOnMouseClicked {
+            if (previouslySelectedPiece != p){
+                previouslySelectedPiece?.effect = null
+                p.effect = DropShadow(10.0, Color.YELLOW)
+                previouslySelectedPiece = p
+            }
+            else{
+                p.effect = null
+                previouslySelectedPiece = null
+            }
+        }
+        p.layoutX = coordinates[0]
+        p.layoutY = coordinates[1]
+
+        piecesList[color]?.add(p)
     }
 
     private fun loadUI(parent: Group){
@@ -143,7 +218,7 @@ override fun start(mainStage: Stage) {
         //val uiTitleLabel = Label("Nine Men's Morris")
         //uiTitleLabel.font = Font("Arial", 25.0)
 
-        val uiTitleLabel = inicLabel("Nine Men's Morris", 25.0, "Arial", FontWeight.BOLD)
+        val uiTitleLabel = initLabel("Nine Men's Morris", 25.0, "Arial", FontWeight.BOLD)
 
         val playersNHBox = HBox((WIDTH_UI/3).toDouble())
         HBox.setHgrow(playersNHBox, Priority.ALWAYS)
@@ -153,8 +228,8 @@ override fun start(mainStage: Stage) {
 
         playersNHBox.style = "-fx-background-color:#D3D3D3"
         //playersNHBox.background = Background(BackgroundFill(Color.LIGHTBLUE, null, null))
-        val playerWhiteText = inicLabel("WHITE", 15.0, fontWeight=FontWeight.BOLD)
-        val playerBlackText = inicLabel("BLACK", 15.0, fontWeight=FontWeight.BOLD)
+        val playerWhiteText = initLabel("WHITE", 15.0, fontWeight=FontWeight.BOLD)
+        val playerBlackText = initLabel("BLACK", 15.0, fontWeight=FontWeight.BOLD)
         playerWhiteText.textFill = Color.WHITE
         playerBlackText.textFill = Color.BLACK
 
@@ -166,7 +241,7 @@ override fun start(mainStage: Stage) {
         instructionTextArea.isWrapText = true
         //instructionTextArea.alignment = Pos.CENTER
 
-        timePassedLabel = inicLabel("Elapsed time: ..")
+        timePassedLabel = initLabel("Elapsed time: ..")
 
         uiMainVBox.children.addAll(uiTitleLabel, playersNHBox, instructionTextArea)
         uiMainVBox.children.add(timePassedLabel)
@@ -175,7 +250,7 @@ override fun start(mainStage: Stage) {
         parent.children.add(uiMainVBox)
     }
 
-    private  fun inicLabel(text:String,
+    private  fun initLabel(text:String,
                            size:Double=15.0,
                            fontFamily:String="System",
                            fontWeight:FontWeight=FontWeight.NORMAL) : Label {
@@ -194,7 +269,7 @@ override fun start(mainStage: Stage) {
         graphicsContext.clearRect(0.0, 0.0, WIDTH_GAME.toDouble(), HEIGHT.toDouble())
 
         // draw background
-        graphicsContext.drawImage(space, 0.0, 0.0)
+        graphicsContext.drawImage(backgroundImage, 0.0, 0.0)
 
         // perform world updates
         updateSunPosition()
