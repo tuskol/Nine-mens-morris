@@ -1,6 +1,7 @@
 package frames
 
 import com.example.getResource
+import elements.Field
 import elements.Piece
 import javafx.animation.AnimationTimer
 import javafx.application.Application
@@ -42,7 +43,7 @@ class GameFrame : Application() {
     private lateinit var timePassedLabel: Label
 
     //Game Elements
-    private lateinit var testPiece: Image
+    private val fields: MutableList<MutableList<Field>> = mutableListOf()
     private var previouslySelectedPiece: ImageView? = null
     private val piecesList = mutableMapOf<Color, MutableList<Piece>>()
 
@@ -132,27 +133,25 @@ override fun start(mainStage: Stage) {
         var mx = (WIDTH_GAME - fieldImage.width) / 2.0
         var my = (HEIGHT - fieldImage.height) / 2.0
 
+
         val whitePiecePic = Image(getResource("/pieceWhite.png"))
         //TODO: valami figyelmeztetés ha nem ugynakkorák a képek
 
 
-        /*
-        var lmxs = mx - (fieldImage.width + fieldSpacing) * 1.0 + (fieldImage.width - 5.0) / 2.0
-        var lmys = my - (fieldImage.height + fieldSpacing) * 1.0 + (fieldImage.height - 5.0) / 2.0
-        var rmxs = mx + (fieldImage.width + fieldSpacing) * 1.0 + (fieldImage.width - 5.0) / 2.0
-        var rmys = my - (fieldImage.height + fieldSpacing) * 1.0 + (fieldImage.height - 5.0) / 2.0
 
+        //Drawing the lines and fields
 
-        val line = Line(lmxs, lmys, rmxs, rmys)
-        line.stroke = Color.RED
-        line.strokeWidth = 5.0
-        parent.children.add(line)
-*/
-
-
-        //Drawing the fields
+        //draws the left-side horizontal line
+        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my),false,true))
+        //draws the upper-side vertical line
+        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my),false,false))
+        //draws the right-side horizontal line
+        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my),true,true))
+        //draws the lower-side vertical line
+        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my),true,false))
         var i = 1
         while (i <= 3){
+            //Drawing the line between the fields in their layers
             //draws the upper horizontal line
             parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
                 arrayOf(false, false), arrayOf(true, false), i))
@@ -166,23 +165,28 @@ override fun start(mainStage: Stage) {
             parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
                 arrayOf(true, false), arrayOf(true, true), i))
 
-            //Left-middle horizontal line
-            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true), arrayOf(true, false))
-            //Right-middle horizontal line
-            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false), arrayOf(true, false))
-            //Upper-middle vertical line
-            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false), arrayOf(false, true))
-            //Lower-middle vertical line
-            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true), arrayOf(false, true))
-            //Left-Upper diagonal line
-            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, false))
-            //Right-Upper diagonal line
-            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false))
-            //Left-Lower diagonal line
-            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true))
-            //Right-Lower diagonal line
-            drawFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, true))
+            //Making the fields
+            val newFieldLayer: MutableList<Field> = mutableListOf()
+            fields.add(newFieldLayer)
 
+            //Left-middle horizontal line
+            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true), arrayOf(true, false)))
+            //Right-middle horizontal line
+            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false), arrayOf(true, false)))
+            //Upper-middle vertical line
+            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false), arrayOf(false, true)))
+            //Lower-middle vertical line
+            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true), arrayOf(false, true)))
+            //Left-Upper diagonal line
+            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, false)))
+            //Right-Upper diagonal line
+            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false)))
+            //Left-Lower diagonal line
+            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true)))
+            //Right-Lower diagonal line
+            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, true)))
+
+            parent.children.addAll(fields.last())
             i++
         }
 
@@ -224,21 +228,49 @@ override fun start(mainStage: Stage) {
         line.toBack()
         return line
     }
-    private fun drawFields(fieldImage:Image,
+
+    private fun drawCrossLines(fieldImage:Image,
+                               centerPoints:Array<Double>,
+                               op: Boolean,
+                               horizontal: Boolean,
+                               color: Color = Color.GRAY,
+                               lineWidth:Double = 20.0) : Line {
+
+        var smx = centerPoints[0] + (if (op) 1 else -1) *
+                (if (horizontal) 1 else 0)*(fieldImage.width + SPACING) * 3 + (fieldImage.width) / 2.0
+        var smy = centerPoints[1] + (if (op) 1 else -1) *
+                (if (horizontal) 0 else 1)*(fieldImage.height + SPACING) * 3 + (fieldImage.height) / 2.0
+
+        var emx = centerPoints[0] + (if (op) 1 else -1) *
+                (if (horizontal) 1 else 0)*(fieldImage.width + SPACING) * 1 + (fieldImage.width) / 2.0
+        var emy = centerPoints[1] + (if (op) 1 else -1) *
+                (if (horizontal) 0 else 1)*(fieldImage.height + SPACING) * 1 + (fieldImage.height) / 2.0
+
+        val line = Line(smx, smy, emx, emy)
+        line.stroke = color
+        line.strokeWidth = lineWidth
+        line.toBack()
+        return line
+    }
+    private fun makeFields(fieldImage:Image,
                            centerPoints:Array<Double>,
                            layer:Int,
                            op:Array<Boolean>,
-                           k:Array<Boolean> = arrayOf(true, true), ){
+                           k:Array<Boolean> = arrayOf(true, true), ) : Field{
 
-        //TODO: Field-ek kattinthatóvá tétele
+        //TODO Mezok indexelese meg nincs megcsinalva rendesen
+        var f = Field(layer,0,0)
 
+        f.setOnMouseClicked {
+            //TODO
+        }
 
-        graphicsContext.drawImage(fieldImage,
-            centerPoints[0] + (if (op[0] === true) 1 else -1) *
-                    ((if (k[0] === true) 1 else 0))*(fieldImage.width + SPACING) * layer,
-            centerPoints[1] + (if (op[1] === true) 1 else -1) *
-                    ((if (k[1] === true) 1 else 0))*(fieldImage.height + SPACING) * layer
-        )
+        f.layoutX = centerPoints[0] + (if (op[0]) 1 else -1) *
+                ((if (k[0]) 1 else 0))*(fieldImage.width + SPACING) * layer
+        f.layoutY = centerPoints[1] + (if (op[1]) 1 else -1) *
+                ((if (k[1]) 1 else 0))*(fieldImage.height + SPACING) * layer
+
+        return f
     }
     private  fun drawPieces(id:Int,
                             color: Color,
