@@ -15,7 +15,6 @@ import javafx.scene.control.Label
 import javafx.scene.control.TextArea
 import javafx.scene.effect.DropShadow
 import javafx.scene.image.Image
-import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
@@ -44,12 +43,12 @@ class GameFrame : Application() {
 
     //Game Elements
     private val fields: MutableList<MutableList<Field>> = mutableListOf()
-    private var previouslySelectedPiece: ImageView? = null
+    private var previouslySelectedPiece: Piece? = null
     private val piecesList = mutableMapOf<Color, MutableList<Piece>>()
 
     //Resources
     private lateinit var backgroundImage: Image
-    private lateinit var sun: Image
+    //private lateinit var sun: Image
 
     private var sunX = WIDTH_GAME / 2
     private var sunY = HEIGHT / 2
@@ -263,6 +262,11 @@ override fun start(mainStage: Stage) {
 
         f.setOnMouseClicked {
             //TODO
+            if (previouslySelectedPiece != null){
+                f.setStoredPiece(previouslySelectedPiece)
+                placePieceOnField(f, previouslySelectedPiece)
+                selOrUnselPiece(previouslySelectedPiece, false)
+            }
         }
 
         f.layoutX = centerPoints[0] + (if (op[0]) 1 else -1) *
@@ -279,13 +283,10 @@ override fun start(mainStage: Stage) {
 
         p.setOnMouseClicked {
             if (previouslySelectedPiece != p){
-                previouslySelectedPiece?.effect = null
-                p.effect = DropShadow(10.0, Color.YELLOW)
-                previouslySelectedPiece = p
+                selOrUnselPiece(p, true)
             }
             else{
-                p.effect = null
-                previouslySelectedPiece = null
+                selOrUnselPiece(p, false)
             }
         }
         p.layoutX = coordinates[0]
@@ -300,9 +301,6 @@ override fun start(mainStage: Stage) {
         uiMainVBox.minWidth = WIDTH_UI.toDouble()
         uiMainVBox.alignment = Pos.CENTER
 
-        //val uiTitleLabel = Label("Nine Men's Morris")
-        //uiTitleLabel.font = Font("Arial", 25.0)
-
         val uiTitleLabel = initLabel("Nine Men's Morris", 25.0, "Arial", FontWeight.BOLD)
 
         val playersNHBox = HBox((WIDTH_UI/3).toDouble())
@@ -312,7 +310,6 @@ override fun start(mainStage: Stage) {
         playersNHBox.alignment = Pos.CENTER
 
         playersNHBox.style = "-fx-background-color:#D3D3D3"
-        //playersNHBox.background = Background(BackgroundFill(Color.LIGHTBLUE, null, null))
         val playerWhiteText = initLabel("WHITE", 15.0, fontWeight=FontWeight.BOLD)
         val playerBlackText = initLabel("BLACK", 15.0, fontWeight=FontWeight.BOLD)
         playerWhiteText.textFill = Color.WHITE
@@ -344,6 +341,32 @@ override fun start(mainStage: Stage) {
         return label
     }
 
+
+    private fun placePieceOnField(field: Field, piece: Piece?){
+        piece?.layoutX = field.layoutX + (field.image.width - (piece?.image?.width ?: 0.0)) / 2.0
+        piece?.layoutY = field.layoutY + (field.image.height - (piece?.image?.height ?: 0.0)) / 2.0
+    }
+
+    private fun selOrUnselPiece(piece: Piece?, addEff:Boolean){
+        if (addEff){
+            previouslySelectedPiece?.effect = null
+            piece?.effect = DropShadow(10.0, Color.YELLOW)
+            previouslySelectedPiece = piece
+        }
+        else{
+            piece?.effect = null
+            previouslySelectedPiece = null
+        }
+    }
+
+
+
+
+
+
+
+
+
     private fun tickAndRender(currentNanoTime: Long) {
         // the time elapsed since the last frame, in nanoseconds
         // can be used for physics calculation, etc
@@ -360,7 +383,7 @@ override fun start(mainStage: Stage) {
         updateSunPosition()
 
         // draw sun
-        graphicsContext.drawImage(sun, sunX.toDouble(), sunY.toDouble())
+        //graphicsContext.drawImage(sun, sunX.toDouble(), sunY.toDouble())
 
 
         // display crude fps counter

@@ -9,10 +9,13 @@ class Field(layer:Int, horizontal:Int, vertical:Int) : ImageView() {
     private val horizontal:Int get() = horizontal
     private val vertical:Int get() = vertical
 
+    private var pieceStored: Piece? = null
+        get() = pieceStored
+
     init {
         this.image = Image(getResource("/field.png"))
     }
 
-
+    public fun setStoredPiece(newPiece: Piece?) { pieceStored = newPiece }
 
 }
