@@ -49,7 +49,10 @@ class GameFrame : Application() {
 
     //Resources
     private lateinit var backgroundImage: Image
+    private lateinit var fieldImage: Image
     //private lateinit var sun: Image
+
+    private val centerPoints: Array<Double> = Array(2) { 0.0 }
 
     private var sunX = WIDTH_GAME / 2
     private var sunY = HEIGHT / 2
@@ -60,7 +63,7 @@ class GameFrame : Application() {
     private val currentlyActiveKeys = mutableSetOf<KeyCode>()
     private var startTime = 0L
 
-override fun start(mainStage: Stage) {
+    override fun start(mainStage: Stage) {
     mainStage.title = "Kotlin HW - Nine Men's Morris"
 
     val root = HBox()
@@ -128,10 +131,11 @@ override fun start(mainStage: Stage) {
         //draw the fields
         val fieldSpacing = 15.0
 
-        val fieldImage = Image(getResource("/field.png"))
+        fieldImage = Image(getResource("/field.png"))
 
-        val mx = (WIDTH_GAME - fieldImage.width) / 2.0
-        val my = (HEIGHT - fieldImage.height) / 2.0
+
+        centerPoints[0] = (WIDTH_GAME - fieldImage.width) / 2.0
+        centerPoints[1] = (HEIGHT - fieldImage.height) / 2.0
 
 
         val whitePiecePic = Image(getResource("/pieceWhite.png"))
@@ -142,49 +146,45 @@ override fun start(mainStage: Stage) {
         //Drawing the lines and fields
 
         //draws the left-side horizontal line
-        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my), op=false,true))
+        parent.children.add(drawCrossLines(false,true))
         //draws the upper-side vertical line
-        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my),false,false))
+        parent.children.add(drawCrossLines(false,false))
         //draws the right-side horizontal line
-        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my),true,true))
+        parent.children.add(drawCrossLines(true,true))
         //draws the lower-side vertical line
-        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my),true,false))
+        parent.children.add(drawCrossLines(true,false))
         var i = 1
         while (i <= 3){
             //Drawing the line between the fields in their layers
             //draws the upper horizontal line
-            parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
-                arrayOf(false, false), arrayOf(true, false), i))
+            parent.children.add(makeLines(arrayOf(false, false), arrayOf(true, false), i))
             //draws the lower horizontal line
-            parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
-                arrayOf(false, true), arrayOf(true, true), i))
+            parent.children.add(makeLines(arrayOf(false, true), arrayOf(true, true), i))
             //draws the left vertical line
-            parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
-                arrayOf(false, false), arrayOf(false, true), i))
+            parent.children.add(makeLines(arrayOf(false, false), arrayOf(false, true), i))
             //draws the right vertical line
-            parent.children.add(makeLines(fieldImage, arrayOf(mx, my),
-                arrayOf(true, false), arrayOf(true, true), i))
+            parent.children.add(makeLines(arrayOf(true, false), arrayOf(true, true), i))
 
             //Making the fields
             val newFieldLayer: MutableList<Field> = mutableListOf()
             fields.add(newFieldLayer)
 
             //Left-middle horizontal line
-            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true), arrayOf(true, false)))
+            fields.last().add(makeFields(i, arrayOf(false, true), arrayOf(true, false)))
             //Right-middle horizontal line
-            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false), arrayOf(true, false)))
+            fields.last().add(makeFields(i, arrayOf(true, false), arrayOf(true, false)))
             //Upper-middle vertical line
-            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false), arrayOf(false, true)))
+            fields.last().add(makeFields(i, arrayOf(true, false), arrayOf(false, true)))
             //Lower-middle vertical line
-            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true), arrayOf(false, true)))
+            fields.last().add(makeFields(i, arrayOf(false, true), arrayOf(false, true)))
             //Left-Upper diagonal line
-            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, false)))
+            fields.last().add(makeFields(i, arrayOf(false, false)))
             //Right-Upper diagonal line
-            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, false)))
+            fields.last().add(makeFields(i, arrayOf(true, false)))
             //Left-Lower diagonal line
-            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(false, true)))
+            fields.last().add(makeFields(i, arrayOf(false, true)))
             //Right-Lower diagonal line
-            fields.last().add(makeFields(fieldImage, arrayOf(mx, my), i, arrayOf(true, true)))
+            fields.last().add(makeFields(i, arrayOf(true, true)))
 
             parent.children.addAll(fields.last())
             i++
@@ -204,9 +204,7 @@ override fun start(mainStage: Stage) {
         }
     }
 
-    private fun makeLines(fieldImage:Image,
-                          centerPoints:Array<Double>,
-                          startPoint:Array<Boolean>,
+    private fun makeLines(startPoint:Array<Boolean>,
                           endPoint:Array<Boolean>,
                           layer:Int,
                           color: Color = Color.GRAY,
@@ -229,9 +227,7 @@ override fun start(mainStage: Stage) {
         return line
     }
 
-    private fun drawCrossLines(fieldImage:Image,
-                               centerPoints:Array<Double>,
-                               op: Boolean,
+    private fun drawCrossLines(op: Boolean,
                                horizontal: Boolean,
                                color: Color = Color.GRAY,
                                lineWidth:Double = 20.0) : Line {
@@ -261,10 +257,7 @@ override fun start(mainStage: Stage) {
      *          This helps to place them to the middle of their line
      * @return an initialized Field
      */
-    private fun makeFields(fieldImage:Image,
-                           centerPoints:Array<Double>,
-                           layer:Int,
-                           //arrayIdx:Int,
+    private fun makeFields(layer:Int,
                            op:Array<Boolean>,
                            k:Array<Boolean> = arrayOf(true, true), ) : Field{
 
@@ -402,35 +395,33 @@ override fun start(mainStage: Stage) {
 
     }
     private fun filedIdxToCoord(op: Array<Boolean>, k: Array<Boolean>) :Array<Int>{
-        var x: Int
-        var y: Int
+        val x: Int
+        val y: Int
 
         if (k[0] != k[1]){
-            x = 0
-            y = 0
             if (k[0]){
                 y = 2
-                when (op[0]){
-                    false -> x = 1
-                    true -> x = 3
+                x = when (op[0]){
+                    false -> 1
+                    true -> 3
                 }
             }
             else{
                 x = 2
-                when (op[1]){
-                    false -> y = 1
-                    true -> y = 3
+                y = when (op[1]){
+                    false -> 1
+                    true -> 3
                 }
             }
         }
         else{
-            when (op[0]){
-                false -> x = 1
-                true -> x = 3
+            x = when (op[0]){
+                false -> 1
+                true -> 3
             }
-            when (op[1]){
-                false -> y = 1
-                true -> y = 3
+            y = when (op[1]){
+                false -> 1
+                true -> 3
             }
         }
         return arrayOf(x, y)
