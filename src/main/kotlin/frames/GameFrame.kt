@@ -3,6 +3,7 @@ package frames
 import com.example.getResource
 import elements.Field
 import elements.Piece
+import elements.Player
 import javafx.animation.AnimationTimer
 import javafx.application.Application
 import javafx.event.EventHandler
@@ -45,7 +46,9 @@ class GameFrame : Application() {
     //Game Elements
     private val fields: MutableList<MutableList<Field>> = mutableListOf()
     private var previouslySelectedPiece: Piece? = null
-    private val piecesList = mutableMapOf<Color, MutableList<Piece>>()
+    private val players = mutableMapOf<Color, Player>()
+    private var currentPlayerTurn: Color = Color.WHITE //Starer Player
+    private var phase1Placing: Boolean = true
 
     //Resources
     private lateinit var backgroundImage: Image
@@ -83,8 +86,11 @@ class GameFrame : Application() {
 
     graphicsContext = canvas.graphicsContext2D
 
-    piecesList[Color.WHITE] = mutableListOf()
-    piecesList[Color.BLACK] = mutableListOf()
+    //piecesList[Color.WHITE] = mutableListOf()
+    //piecesList[Color.BLACK] = mutableListOf()
+
+    players[Color.WHITE] = Player(Color.WHITE)
+    players[Color.BLACK] = Player(Color.BLACK)
 
     loadBoard(gameGroup)
     loadUI(uiGroup)
@@ -128,11 +134,8 @@ class GameFrame : Application() {
         graphicsContext.drawImage(pHolder, (WIDTH_GAME-pHolder.width)/2.0 , 0.0)
         graphicsContext.drawImage(pHolder, (WIDTH_GAME-pHolder.width)/2.0, (HEIGHT-pHolder.height))
 
-        //draw the fields
-        val fieldSpacing = 15.0
 
         fieldImage = Image(getResource("/field.png"))
-
 
         centerPoints[0] = (WIDTH_GAME - fieldImage.width) / 2.0
         centerPoints[1] = (HEIGHT - fieldImage.height) / 2.0
@@ -194,10 +197,12 @@ class GameFrame : Application() {
         i = 0
         var x = (WIDTH_GAME-pHolder.width)/2.0 + 15.0
         while (i < 9){
-            drawPieces(i, Color.WHITE, arrayOf(x, 10.0))
-            parent.children.add(piecesList[Color.WHITE]?.last())
-            drawPieces(i, Color.BLACK, arrayOf(x, (HEIGHT- whitePiecePic.height) - 8.0))
-            parent.children.add(piecesList[Color.BLACK]?.last())
+            var p = initPiece(i, Color.WHITE, arrayOf(x, 10.0))
+
+            players[Color.WHITE]?.piecesList?.add(p)
+            parent.children.add(p)
+            p = initPiece(i, Color.BLACK, arrayOf(x, (HEIGHT- whitePiecePic.height) - 8.0))
+            parent.children.add(p)
 
             x += whitePiecePic.width + 15
             i++
@@ -232,8 +237,8 @@ class GameFrame : Application() {
                                color: Color = Color.GRAY,
                                lineWidth:Double = 20.0) : Line {
 
-        val smx = centerPoints[0] + (if (op) 1 else -1) *
-                (if (horizontal) 1 else 0)*(fieldImage.width + SPACING) * 3 + (fieldImage.width) / 2.0
+        val smx = centerPoints[0] + ((if (op) 1 else -1) *
+                (if (horizontal) 1 else 0) * (fieldImage.width + SPACING) * 3) + ((fieldImage.width) / 2.0)
         val smy = centerPoints[1] + (if (op) 1 else -1) *
                 (if (horizontal) 0 else 1)*(fieldImage.height + SPACING) * 3 + (fieldImage.height) / 2.0
 
@@ -260,46 +265,11 @@ class GameFrame : Application() {
     private fun makeFields(layer:Int,
                            op:Array<Boolean>,
                            k:Array<Boolean> = arrayOf(true, true), ) : Field{
-
-        //TODO Mezok indexelese meg nincs megcsinalva rendesen
         val hv = filedIdxToCoord(op, k)
-        val f = Field(layer, hv[0],hv[1])
+        val f = Field(layer, hv[0], hv[1])
 
         f.setOnMouseClicked {
-            //TODO
-            setInstructionText("Szint: ${f.getLayer}\n" +
-                    "Horizontális: ${f.getHorizontal}\n" +
-                    "Vertikális: ${f.getVertical}")
-
-            //Hierarchiája az ellenőrzésnek:
-            //Kiválasztott bábe van-e --> (Mező szomszédos) --> Üres-e
-
-            if (previouslySelectedPiece != null){
-
-                if (f.pieceStored == null){
-                    //
-                    f.pieceStored = previouslySelectedPiece
-
-                    previouslySelectedPiece?.parentField?.pieceStored = null
-
-                    previouslySelectedPiece?.parentField = f
-                    placePieceOnField(f, previouslySelectedPiece)
-                    selOrUnselPiece(previouslySelectedPiece, false)
-
-                }
-                else {
-                    println(f.pieceStored?.getColor.toString())
-
-                    setInstructionText("Ide nem rakhatsz asdasd")
-                }
-
-
-            }
-
-
-
-
-
+            clickOnField(f)
         }
 
         f.layoutX = centerPoints[0] + (if (op[0]) 1 else -1) *
@@ -309,23 +279,18 @@ class GameFrame : Application() {
 
         return f
     }
-    private  fun drawPieces(id:Int,
-                            color: Color,
-                            coordinates:Array<Double>){
+    private fun initPiece(id:Int,
+                          color: Color,
+                          coordinates:Array<Double>) : Piece{
         val p = Piece(id, color)
 
         p.setOnMouseClicked {
-            if (previouslySelectedPiece != p){
-                selOrUnselPiece(p, true)
-            }
-            else{
-                selOrUnselPiece(p, false)
-            }
+            clickOnPiece(p)
         }
         p.layoutX = coordinates[0]
         p.layoutY = coordinates[1]
 
-        piecesList[color]?.add(p)
+        return p
     }
 
     private fun loadUI(parent: Group){
@@ -391,9 +356,6 @@ class GameFrame : Application() {
             previouslySelectedPiece = null
         }
     }
-    private fun setSelectedPiece(){
-
-    }
     private fun filedIdxToCoord(op: Array<Boolean>, k: Array<Boolean>) :Array<Int>{
         val x: Int
         val y: Int
@@ -429,7 +391,72 @@ class GameFrame : Application() {
     private fun setInstructionText(newInstruction: String){
         instructionTextArea.text = newInstruction
     }
+    private fun changePlayerTurn(){
+        if (currentPlayerTurn == Color.WHITE) currentPlayerTurn = Color.BLACK
+        else currentPlayerTurn = Color.WHITE
+    }
 
+
+    private fun clickOnPiece(p: Piece){
+        if (previouslySelectedPiece != p){
+            selOrUnselPiece(p, true)
+        }
+        else{
+            selOrUnselPiece(p, false)
+        }
+
+
+        //EZZ AZ ELLENŐRZÉSE HOGY KI VAN SORON
+        /*
+        if (p.getColor == currentPlayerTurn){
+            if (previouslySelectedPiece != p){
+                selOrUnselPiece(p, true)
+            }
+            else{
+                selOrUnselPiece(p, false)
+            }
+        }
+        else {
+            setInstructionText("NONO!")
+        }*/
+    }
+    private fun clickOnField(f: Field){
+        //TODO
+        //Hierarchiája az ellenőrzésnek:
+        //Kiválasztott bábe van-e --> (Mező szomszédos) --> Üres-e
+
+        /*
+        if (previouslySelectedPiece != null){
+
+            if (f.pieceStored == null){
+                f.pieceStored = previouslySelectedPiece
+                previouslySelectedPiece?.parentField?.pieceStored = null
+                previouslySelectedPiece?.parentField = f
+                placePieceOnField(f, previouslySelectedPiece)
+                selOrUnselPiece(previouslySelectedPiece, false)
+                changePlayerTurn()
+            }
+            else {
+                println(f.pieceStored?.getColor.toString())
+
+                setInstructionText("Ide nem rakhatsz asdasd")
+            }
+        }
+         */
+
+        for (fsl in fields){
+            for (fs in fsl){
+                if (f.isNeighbour(fs)){
+                    fs?.effect = DropShadow(10.0, Color.YELLOW)
+                }
+                else {
+                    fs?.effect = null
+                }
+            }
+        }
+        f?.effect = DropShadow(10.0, Color.RED)
+
+    }
 
 
 

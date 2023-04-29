@@ -7,4 +7,8 @@ class Player(private val color:Color) {
 
     val name = color.toString()
 
+   var piecesList = mutableListOf<Piece>()
+
+    //piecesList[Color.WHITE] = mutableListOf()
+
 }
