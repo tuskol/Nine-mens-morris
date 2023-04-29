@@ -17,29 +17,34 @@ class Field(private val layer:Int,
         this.image = Image(getResource("/field.png"))
     }
 
-    public fun isNeighbour(f: Field) :Boolean {
-        //Check in the same layer
-        if (f.getLayer == layer){
-            //Check horizontally
-            if (f.getVertical == vertical) {
-                if (f.getHorizontal+1 == horizontal ||
-                    f.getHorizontal-1 == horizontal){
-                    return true
-                }
-            }
-            //Check vertically
-            if (f.getHorizontal == horizontal) {
-                if (f.getVertical+1 == vertical ||
-                    f.getVertical-1 == vertical){
-                    return true
-                }
-            }
+    fun isNeighbour(f: Field?) :Boolean {
+        if (f == null){
+            return false
         }
-        //Check in layer connections
-        if (horizontal == 2 || vertical == 2){
-            if ((f.getHorizontal == horizontal && f.getVertical == vertical) &&
-                (f.getLayer+1 == layer || f.getLayer-1 == layer)){
-                return true
+        else{
+            //Check in the same layer
+            if (f.getLayer == layer){
+                //Check horizontally
+                if (f.getVertical == vertical) {
+                    if (f.getHorizontal+1 == horizontal ||
+                        f.getHorizontal-1 == horizontal){
+                        return true
+                    }
+                }
+                //Check vertically
+                if (f.getHorizontal == horizontal) {
+                    if (f.getVertical+1 == vertical ||
+                        f.getVertical-1 == vertical){
+                        return true
+                    }
+                }
+            }
+            //Check in layer connections
+            if (horizontal == 2 || vertical == 2){
+                if ((f.getHorizontal == horizontal && f.getVertical == vertical) &&
+                    (f.getLayer+1 == layer || f.getLayer-1 == layer)){
+                    return true
+                }
             }
         }
         return false

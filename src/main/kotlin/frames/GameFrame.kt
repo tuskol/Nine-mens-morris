@@ -46,9 +46,10 @@ class GameFrame : Application() {
     //Game Elements
     private val fields: MutableList<MutableList<Field>> = mutableListOf()
     private var previouslySelectedPiece: Piece? = null
-    private val players = mutableMapOf<Color, Player>()
-    private var currentPlayerTurn: Color = Color.WHITE //Starer Player
+    private val players = mutableListOf<Player>()
+    private var currentPlayerTurn = 0 //Starer Player id
     private var phase1Placing: Boolean = true
+    private var countPiecesOnField = 0
 
     //Resources
     private lateinit var backgroundImage: Image
@@ -89,8 +90,8 @@ class GameFrame : Application() {
     //piecesList[Color.WHITE] = mutableListOf()
     //piecesList[Color.BLACK] = mutableListOf()
 
-    players[Color.WHITE] = Player(Color.WHITE)
-    players[Color.BLACK] = Player(Color.BLACK)
+    players.add(Player(Color.WHITE))
+    players.add(Player(Color.BLACK))
 
     loadBoard(gameGroup)
     loadUI(uiGroup)
@@ -197,11 +198,12 @@ class GameFrame : Application() {
         i = 0
         var x = (WIDTH_GAME-pHolder.width)/2.0 + 15.0
         while (i < 9){
-            var p = initPiece(i, Color.WHITE, arrayOf(x, 10.0))
+            var p = initPiece(i, players[0].playerColor, arrayOf(x, 10.0))
 
-            players[Color.WHITE]?.piecesList?.add(p)
+            players[0]?.piecesList?.add(p)
             parent.children.add(p)
-            p = initPiece(i, Color.BLACK, arrayOf(x, (HEIGHT- whitePiecePic.height) - 8.0))
+            p = initPiece(i, players[1].playerColor, arrayOf(x, (HEIGHT- whitePiecePic.height) - 8.0))
+            players[1]?.piecesList?.add(p)
             parent.children.add(p)
 
             x += whitePiecePic.width + 15
@@ -356,6 +358,22 @@ class GameFrame : Application() {
             previouslySelectedPiece = null
         }
     }
+    private fun addOrDelEffectOnField(middleField: Field?, addEff: Boolean){
+        for (fsl in fields){
+            for (f in fsl){
+                if (addEff){
+                    if ((middleField?.isNeighbour(f) == true ||
+                        phase1Placing ||
+                        players[currentPlayerTurn].canFly) &&
+                        f.pieceStored == null){
+
+                        f.effect = DropShadow(10.0, Color.GREEN)
+                    }
+                }
+                else f.effect = null
+            }
+        }
+    }
     private fun filedIdxToCoord(op: Array<Boolean>, k: Array<Boolean>) :Array<Int>{
         val x: Int
         val y: Int
@@ -392,58 +410,69 @@ class GameFrame : Application() {
         instructionTextArea.text = newInstruction
     }
     private fun changePlayerTurn(){
-        if (currentPlayerTurn == Color.WHITE) currentPlayerTurn = Color.BLACK
-        else currentPlayerTurn = Color.WHITE
+        if (currentPlayerTurn == 0) currentPlayerTurn = 1
+        else currentPlayerTurn = 0
     }
 
 
     private fun clickOnPiece(p: Piece){
-        if (previouslySelectedPiece != p){
-            selOrUnselPiece(p, true)
-        }
-        else{
-            selOrUnselPiece(p, false)
-        }
-
-
-        //EZZ AZ ELLENŐRZÉSE HOGY KI VAN SORON
-        /*
-        if (p.getColor == currentPlayerTurn){
+        if (p.getColor == players[currentPlayerTurn].playerColor){
             if (previouslySelectedPiece != p){
                 selOrUnselPiece(p, true)
+                addOrDelEffectOnField(p.parentField, true)
             }
             else{
                 selOrUnselPiece(p, false)
+                addOrDelEffectOnField(p.parentField, false)
             }
         }
         else {
             setInstructionText("NONO!")
-        }*/
+        }
     }
-    private fun clickOnField(f: Field){
+    private fun clickOnField(f: Field) {
         //TODO
         //Hierarchiája az ellenőrzésnek:
         //Kiválasztott bábe van-e --> (Mező szomszédos) --> Üres-e
 
-        /*
-        if (previouslySelectedPiece != null){
 
-            if (f.pieceStored == null){
-                f.pieceStored = previouslySelectedPiece
-                previouslySelectedPiece?.parentField?.pieceStored = null
-                previouslySelectedPiece?.parentField = f
-                placePieceOnField(f, previouslySelectedPiece)
-                selOrUnselPiece(previouslySelectedPiece, false)
-                changePlayerTurn()
+        //Checks that a piece is selected
+        if (previouslySelectedPiece != null) {
+            //Checks that the selected field is neighbour OR the players can move freely
+            if ((previouslySelectedPiece?.parentField?.isNeighbour(f) == true) ||
+                phase1Placing || players[currentPlayerTurn].canFly)
+            {
+                //Checks that the field is empty
+                if (f.pieceStored == null) {
+                    addOrDelEffectOnField(previouslySelectedPiece?.parentField, false)
+
+                    f.pieceStored = previouslySelectedPiece
+                    previouslySelectedPiece?.parentField?.pieceStored = null
+                    previouslySelectedPiece?.parentField = f
+                    placePieceOnField(f, previouslySelectedPiece)
+                    selOrUnselPiece(previouslySelectedPiece, false)
+
+                    if (phase1Placing && currentPlayerTurn == 1) {
+                        countPiecesOnField += 1
+                        if (countPiecesOnField >= 9) {
+                            phase1Placing = false
+
+                            setInstructionText("Nincs több pakolás ááááá")
+                        }
+                    }
+                    changePlayerTurn()
+                }
+                else {
+                    setInstructionText("itt már van HE")
+                }
             }
             else {
-                println(f.pieceStored?.getColor.toString())
-
-                setInstructionText("Ide nem rakhatsz asdasd")
+                setInstructionText("Nem szomszédos, mit csinálsz xdd")
             }
         }
-         */
 
+
+        /*
         for (fsl in fields){
             for (fs in fsl){
                 if (f.isNeighbour(fs)){
@@ -455,9 +484,9 @@ class GameFrame : Application() {
             }
         }
         f?.effect = DropShadow(10.0, Color.RED)
+        */
 
     }
-
 
 
 
