@@ -143,12 +143,9 @@ class GameFrame : Application() {
 
 
         val whitePiecePic = Image(getResource("/pieceWhite.png"))
-        //TODO: valami figyelmeztetés ha nem ugynakkorák a képek
-
 
 
         //Drawing the lines and fields
-
         //draws the left-side horizontal line
         parent.children.add(drawCrossLines(false,true))
         //draws the upper-side vertical line
@@ -420,13 +417,18 @@ class GameFrame : Application() {
         if (p.getColor == players[currentPlayerTurn].playerColor){
             //Checks if it's selected or unselected
             if (previouslySelectedPiece != p){
+                //Prevents players to select the already placed pieces in phase 1
                 if (phase1Placing && p.parentField == null){
                     selOrUnselPiece(p, true)
                     addOrDelEffectOnField(p.parentField, true)
+
+                    setInstructionText("Figura kiválasztva, rakd le valahova")
                 }
                 else if (!phase1Placing) {
                     selOrUnselPiece(p, true)
                     addOrDelEffectOnField(p.parentField, true)
+
+                    setInstructionText("Figura kiválasztva, rakd le valahova")
                 }
                 else{
                     setInstructionText("Ezt már leraktad, mit csinálsz?!")
@@ -443,9 +445,6 @@ class GameFrame : Application() {
     }
     private fun clickOnField(f: Field) {
         //TODO
-        //Hierarchiája az ellenőrzésnek:
-        //Kiválasztott bábe van-e --> (Mező szomszédos) --> Üres-e
-
 
         //Checks that a piece is selected
         if (previouslySelectedPiece != null) {
@@ -462,6 +461,8 @@ class GameFrame : Application() {
                     previouslySelectedPiece?.parentField = f
                     placePieceOnField(f, previouslySelectedPiece)
                     selOrUnselPiece(previouslySelectedPiece, false)
+
+                    setInstructionText("Figura lerakva, MÁSIK játékos jön")
 
                     if (phase1Placing && currentPlayerTurn == 1) {
                         countPiecesOnField += 1
