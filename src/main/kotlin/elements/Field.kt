@@ -4,18 +4,17 @@ import com.example.getResource
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 
-class Field(layer:Int, horizontal:Int, vertical:Int) : ImageView() {
-    private val layer: Int get() = layer
-    private val horizontal:Int get() = horizontal
-    private val vertical:Int get() = vertical
+class Field(private val layer:Int,
+            private val horizontal:Int,
+            private val vertical: Int) : ImageView() {
+    val getLayer: Int get() = layer
+    val getHorizontal:Int get() = horizontal
+    val getVertical:Int get() = vertical
 
-    private var pieceStored: Piece? = null
-        get() = pieceStored
+    var pieceStored: Piece? = null
 
     init {
         this.image = Image(getResource("/field.png"))
     }
-
-    public fun setStoredPiece(newPiece: Piece?) { pieceStored = newPiece }
 
 }

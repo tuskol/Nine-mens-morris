@@ -40,6 +40,7 @@ class GameFrame : Application() {
 
     //UI Elements
     private lateinit var timePassedLabel: Label
+    private lateinit var instructionTextArea: TextArea
 
     //Game Elements
     private val fields: MutableList<MutableList<Field>> = mutableListOf()
@@ -127,10 +128,10 @@ override fun start(mainStage: Stage) {
         //draw the fields
         val fieldSpacing = 15.0
 
-        var fieldImage = Image(getResource("/field.png"))
+        val fieldImage = Image(getResource("/field.png"))
 
-        var mx = (WIDTH_GAME - fieldImage.width) / 2.0
-        var my = (HEIGHT - fieldImage.height) / 2.0
+        val mx = (WIDTH_GAME - fieldImage.width) / 2.0
+        val my = (HEIGHT - fieldImage.height) / 2.0
 
 
         val whitePiecePic = Image(getResource("/pieceWhite.png"))
@@ -141,7 +142,7 @@ override fun start(mainStage: Stage) {
         //Drawing the lines and fields
 
         //draws the left-side horizontal line
-        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my),false,true))
+        parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my), op=false,true))
         //draws the upper-side vertical line
         parent.children.add(drawCrossLines(fieldImage, arrayOf(mx, my),false,false))
         //draws the right-side horizontal line
@@ -211,14 +212,14 @@ override fun start(mainStage: Stage) {
                           color: Color = Color.GRAY,
                           lineWidth:Double = 20.0) : Line{
 
-        var smx = centerPoints[0] + (if (startPoint[0] === true) 1 else -1) *
+        val smx = centerPoints[0] + (if (startPoint[0]) 1 else -1) *
                 (fieldImage.width + SPACING) * layer + (fieldImage.width) / 2.0
-        var smy = centerPoints[1] + (if (startPoint[1] === true) 1 else -1) *
+        val smy = centerPoints[1] + (if (startPoint[1]) 1 else -1) *
                 (fieldImage.height + SPACING) * layer + (fieldImage.height) / 2.0
 
-        var emx = centerPoints[0] + (if (endPoint[0] === true) 1 else -1) *
+        val emx = centerPoints[0] + (if (endPoint[0]) 1 else -1) *
                 (fieldImage.width + SPACING) * layer + (fieldImage.width) / 2.0
-        var emy = centerPoints[1] + (if (endPoint[1] === true) 1 else -1) *
+        val emy = centerPoints[1] + (if (endPoint[1]) 1 else -1) *
                 (fieldImage.height + SPACING) * layer + (fieldImage.height) / 2.0
 
         val line = Line(smx, smy, emx, emy)
@@ -235,14 +236,14 @@ override fun start(mainStage: Stage) {
                                color: Color = Color.GRAY,
                                lineWidth:Double = 20.0) : Line {
 
-        var smx = centerPoints[0] + (if (op) 1 else -1) *
+        val smx = centerPoints[0] + (if (op) 1 else -1) *
                 (if (horizontal) 1 else 0)*(fieldImage.width + SPACING) * 3 + (fieldImage.width) / 2.0
-        var smy = centerPoints[1] + (if (op) 1 else -1) *
+        val smy = centerPoints[1] + (if (op) 1 else -1) *
                 (if (horizontal) 0 else 1)*(fieldImage.height + SPACING) * 3 + (fieldImage.height) / 2.0
 
-        var emx = centerPoints[0] + (if (op) 1 else -1) *
+        val emx = centerPoints[0] + (if (op) 1 else -1) *
                 (if (horizontal) 1 else 0)*(fieldImage.width + SPACING) * 1 + (fieldImage.width) / 2.0
-        var emy = centerPoints[1] + (if (op) 1 else -1) *
+        val emy = centerPoints[1] + (if (op) 1 else -1) *
                 (if (horizontal) 0 else 1)*(fieldImage.height + SPACING) * 1 + (fieldImage.height) / 2.0
 
         val line = Line(smx, smy, emx, emy)
@@ -251,22 +252,61 @@ override fun start(mainStage: Stage) {
         line.toBack()
         return line
     }
+
+    /**
+     * @param op Operator that moves the elements horizontally and vertically.
+     * + true means +
+     * + false mean -
+     * @param k This parameter allows the elements to move horizontally and vertically.
+     *          This helps to place them to the middle of their line
+     * @return an initialized Field
+     */
     private fun makeFields(fieldImage:Image,
                            centerPoints:Array<Double>,
                            layer:Int,
+                           //arrayIdx:Int,
                            op:Array<Boolean>,
                            k:Array<Boolean> = arrayOf(true, true), ) : Field{
 
         //TODO Mezok indexelese meg nincs megcsinalva rendesen
-        var f = Field(layer,0,0)
+        val hv = filedIdxToCoord(op, k)
+        val f = Field(layer, hv[0],hv[1])
 
         f.setOnMouseClicked {
             //TODO
+            setInstructionText("Szint: ${f.getLayer}\n" +
+                    "Horizontális: ${f.getHorizontal}\n" +
+                    "Vertikális: ${f.getVertical}")
+
+            //Hierarchiája az ellenőrzésnek:
+            //Kiválasztott bábe van-e --> (Mező szomszédos) --> Üres-e
+
             if (previouslySelectedPiece != null){
-                f.setStoredPiece(previouslySelectedPiece)
-                placePieceOnField(f, previouslySelectedPiece)
-                selOrUnselPiece(previouslySelectedPiece, false)
+
+                if (f.pieceStored == null){
+                    //
+                    f.pieceStored = previouslySelectedPiece
+
+                    previouslySelectedPiece?.parentField?.pieceStored = null
+
+                    previouslySelectedPiece?.parentField = f
+                    placePieceOnField(f, previouslySelectedPiece)
+                    selOrUnselPiece(previouslySelectedPiece, false)
+
+                }
+                else {
+                    println(f.pieceStored?.getColor.toString())
+
+                    setInstructionText("Ide nem rakhatsz asdasd")
+                }
+
+
             }
+
+
+
+
+
         }
 
         f.layoutX = centerPoints[0] + (if (op[0]) 1 else -1) *
@@ -279,7 +319,7 @@ override fun start(mainStage: Stage) {
     private  fun drawPieces(id:Int,
                             color: Color,
                             coordinates:Array<Double>){
-        var p = Piece(id, color)
+        val p = Piece(id, color)
 
         p.setOnMouseClicked {
             if (previouslySelectedPiece != p){
@@ -316,7 +356,7 @@ override fun start(mainStage: Stage) {
         playerBlackText.textFill = Color.BLACK
 
 
-        val instructionTextArea = TextArea("Instruction panel\n" +
+        instructionTextArea = TextArea("Instruction panel\n" +
                                 "Here comes all the instructions")
         instructionTextArea.maxWidth = WIDTH_UI.toDouble() - 10.0
         instructionTextArea.isEditable = false
@@ -357,6 +397,46 @@ override fun start(mainStage: Stage) {
             piece?.effect = null
             previouslySelectedPiece = null
         }
+    }
+    private fun setSelectedPiece(){
+
+    }
+    private fun filedIdxToCoord(op: Array<Boolean>, k: Array<Boolean>) :Array<Int>{
+        var x: Int
+        var y: Int
+
+        if (k[0] != k[1]){
+            x = 0
+            y = 0
+            if (k[0]){
+                y = 2
+                when (op[0]){
+                    false -> x = 1
+                    true -> x = 3
+                }
+            }
+            else{
+                x = 2
+                when (op[1]){
+                    false -> y = 1
+                    true -> y = 3
+                }
+            }
+        }
+        else{
+            when (op[0]){
+                false -> x = 1
+                true -> x = 3
+            }
+            when (op[1]){
+                false -> y = 1
+                true -> y = 3
+            }
+        }
+        return arrayOf(x, y)
+    }
+    private fun setInstructionText(newInstruction: String){
+        instructionTextArea.text = newInstruction
     }
 
 
