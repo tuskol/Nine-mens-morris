@@ -416,10 +416,21 @@ class GameFrame : Application() {
 
 
     private fun clickOnPiece(p: Piece){
+        //Checks player of the selected piece
         if (p.getColor == players[currentPlayerTurn].playerColor){
+            //Checks if it's selected or unselected
             if (previouslySelectedPiece != p){
-                selOrUnselPiece(p, true)
-                addOrDelEffectOnField(p.parentField, true)
+                if (phase1Placing && p.parentField == null){
+                    selOrUnselPiece(p, true)
+                    addOrDelEffectOnField(p.parentField, true)
+                }
+                else if (!phase1Placing) {
+                    selOrUnselPiece(p, true)
+                    addOrDelEffectOnField(p.parentField, true)
+                }
+                else{
+                    setInstructionText("Ezt már leraktad, mit csinálsz?!")
+                }
             }
             else{
                 selOrUnselPiece(p, false)
