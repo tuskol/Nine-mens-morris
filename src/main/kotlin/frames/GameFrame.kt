@@ -53,6 +53,7 @@ class GameFrame : Application() {
     private var phase1Placing: Boolean = true
     private var countPiecesOnField = 0
     private var phaseRemoving: Boolean = false
+    private var removablePieces = mutableListOf<Piece>()
 
     //Resources
     private lateinit var backgroundImage: Image
@@ -150,13 +151,13 @@ class GameFrame : Application() {
 
         //Drawing the lines and fields
         //draws the left-side horizontal line
-        parent.children.add(drawCrossLines(false,true))
+        parent.children.add(drawCrossLines(op=false, horizontal=true))
         //draws the upper-side vertical line
-        parent.children.add(drawCrossLines(false,false))
+        parent.children.add(drawCrossLines(op=false, horizontal=false))
         //draws the right-side horizontal line
-        parent.children.add(drawCrossLines(true,true))
+        parent.children.add(drawCrossLines(op=true, horizontal=true))
         //draws the lower-side vertical line
-        parent.children.add(drawCrossLines(true,false))
+        parent.children.add(drawCrossLines(op=true, horizontal=false))
         var i = 1
         while (i <= 3){
             //Drawing the line between the fields in their layers
@@ -216,8 +217,8 @@ class GameFrame : Application() {
                           layer:Int,
                           color: Color = Color.GRAY,
                           lineWidth:Double = 20.0) : Line{
-        var calcStartPoints = calcLayoutPoints(layer, startPoint)
-        var calcEndPoints = calcLayoutPoints(layer, endPoint)
+        val calcStartPoints = calcLayoutPoints(layer, startPoint)
+        val calcEndPoints = calcLayoutPoints(layer, endPoint)
 
         val line = Line(calcStartPoints[0], calcStartPoints[1], calcEndPoints[0], calcEndPoints[1])
         line.stroke = color
@@ -364,6 +365,10 @@ class GameFrame : Application() {
             previouslySelectedPiece = null
         }
     }
+
+    /**
+     * Adds or Removes graphical effect on a field where the player can place a piece
+     */
     private fun addOrDelEffectOnField(middleField: Field?, addEff: Boolean){
         for (fsl in fields){
             for (f in fsl){
@@ -416,13 +421,16 @@ class GameFrame : Application() {
         instructionTextArea.text = newInstruction
     }
     private fun changePlayerTurn(){
-        currentPlayerTurn = if (currentPlayerTurn == 0) 1 else 0
+        currentPlayerTurn = getOtherPlayer()
+    }
+    private fun getOtherPlayer(): Int{
+        return if (currentPlayerTurn == 0) 1 else 0
     }
 
 
     private fun clickOnPiece(p: Piece){
         //Checks player of the selected piece
-        if (p.getColor == players[currentPlayerTurn].playerColor){
+        if (p.getColor == players[currentPlayerTurn].playerColor && !phaseRemoving){
             //Checks if it's selected or unselected
             if (previouslySelectedPiece != p){
                 //Prevents players to select the already placed pieces in phase 1
@@ -447,13 +455,25 @@ class GameFrame : Application() {
                 addOrDelEffectOnField(p.parentField, false)
             }
         }
+        //Checks the other player in the Removing Phase
+        else if(p.getColor != players[currentPlayerTurn].playerColor && phaseRemoving){
+            //Checks that the selected piece is removable
+            if (p in removablePieces){
+                p.parentField?.pieceStored = null
+                p.parentField = null
+                p.isVisible = false
+                players[getOtherPlayer()].piecesList.remove(p)
+
+                changeRemovingPhase(false)
+                changePlayerTurn()
+                setInstructionText("meg volt a kukázás te jössz sry")
+            }
+        }
         else {
             setInstructionText("NONO!")
         }
     }
     private fun clickOnField(f: Field) {
-        //TODO
-
         //Checks that a piece is selected
         if (previouslySelectedPiece != null) {
             //Checks that the selected field is neighbour OR the players can move freely
@@ -472,20 +492,25 @@ class GameFrame : Application() {
 
                     setInstructionText("Figura lerakva, MÁSIK játékos jön")
 
+                    //In phase 1 we need to count the second player's placed pieces
                     if (phase1Placing && currentPlayerTurn == 1) {
                         countPiecesOnField += 1
+                        //...when it's 9, it means all pieces have been placed, so phase 1 is over
                         if (countPiecesOnField >= 9) {
                             phase1Placing = false
 
                             setInstructionText("Nincs több pakolás ááááá")
                         }
                     }
+                    //If there's a mill, the current player can remove a piece from the other player
                     if (checkMill(f)){
                         setInstructionText("MALOM VAN GECOO")
-                        changeDeletingPhase()
+                        changeRemovingPhase(true)
                     }
-
-                    changePlayerTurn()
+                    //If there's no new mill, the game continuous
+                    else{
+                        changePlayerTurn()
+                    }
                 }
                 else {
                     setInstructionText("itt már van HE")
@@ -497,15 +522,15 @@ class GameFrame : Application() {
         }
     }
 
-    private fun checkMill(placeField: Field): Boolean{
+    private fun checkMill(placeField: Field?, checkedPlayer: Int = currentPlayerTurn): Boolean{
         var i = 0
         var pieceCounterM = 0
         //Check middle lines where the layers are connected
-        if (placeField.getHorizontal == 2 || placeField.getVertical == 2) {
+        if (placeField?.getHorizontal == 2 || placeField?.getVertical == 2) {
             val fieldIdx = fields[placeField.getLayer-1].indexOf(placeField)
             while (i < 3){
                 //Checks that the current player's pieces are on the checked fields
-                if (fields[i][fieldIdx].pieceStored?.getColor == players[currentPlayerTurn].playerColor){
+                if (fields[i][fieldIdx].pieceStored?.getColor == players[checkedPlayer].playerColor){
                     pieceCounterM += 1
                 }
                 i += 1
@@ -516,15 +541,15 @@ class GameFrame : Application() {
         var pieceCounterH = 0
         var pieceCounterV = 0
         while (i <= 3){
-            for (fl in fields[placeField.getLayer-1]){
+            for (fl in fields[(placeField?.getLayer ?: 0) -1]){
                 //Checks that the current player's pieces are on the checked fields
-                if (fl.pieceStored?.getColor == players[currentPlayerTurn].playerColor){
+                if (fl.pieceStored?.getColor == players[checkedPlayer].playerColor){
                     //Check horizontally
-                    if (fl.getVertical == placeField.getVertical && fl.getHorizontal == i) {
+                    if (fl.getVertical == placeField?.getVertical && fl.getHorizontal == i) {
                         pieceCounterH += 1
                     }
                     //Check vertically
-                    if (fl.getHorizontal == placeField.getHorizontal && fl.getVertical == i) {
+                    if (fl.getHorizontal == placeField?.getHorizontal && fl.getVertical == i) {
                         pieceCounterV += 1
                     }
                 }
@@ -533,8 +558,30 @@ class GameFrame : Application() {
         }
         return pieceCounterM == 3 || pieceCounterH == 3 || pieceCounterV == 3
     }
-    private fun changeDeletingPhase(){
+    private fun changeRemovingPhase(activatePhase: Boolean){
+        phaseRemoving = activatePhase
 
+        for (p in players[getOtherPlayer()].piecesList) {
+            if (activatePhase){
+                //Checks that the piece is removable. It is if it's placed and not in a mill
+                if (p.parentField != null &&
+                    !checkMill(p.parentField, getOtherPlayer())){
+                    removablePieces.add(p)
+                    p?.effect = DropShadow(10.0, Color.RED)
+                }
+            }
+            else{
+                p?.effect = null
+            }
+        }
+        //If there are no removable pieces, then the Removing Phase should be ended
+        if(removablePieces.size == 0) {
+            phaseRemoving = false
+            setInstructionText("Talán legközlebb ahahhahah")
+            changePlayerTurn()
+        }
+        //Clears the list of the removable list at the end of the phase
+        if (!activatePhase) removablePieces.clear()
     }
 
 
