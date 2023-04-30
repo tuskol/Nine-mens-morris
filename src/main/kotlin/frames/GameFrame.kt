@@ -46,6 +46,7 @@ class GameFrame : Application() {
     private lateinit var instructionTextArea: TextArea
 
     //Game Elements
+    private var gameInPrgoress: Boolean = true
     private val fields: MutableList<MutableList<Field>> = mutableListOf()
     private var previouslySelectedPiece: Piece? = null
     private val players = mutableListOf<Player>()
@@ -105,13 +106,16 @@ class GameFrame : Application() {
         override fun handle(currentNanoTime: Long) {
             //tickAndRender(currentNanoTime)
 
-            if (startTime == 0L) {
-                startTime = currentNanoTime
+
+            if (gameInPrgoress){
+                if (startTime == 0L) {
+                    startTime = currentNanoTime
+                }
+                val elapsedTime = (currentNanoTime - startTime) / 1_000_000_000.0
+                val elapsedMinutes = elapsedTime / 60
+                val elapsedSeconds = elapsedTime % 60
+                timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
             }
-            val elapsedTime = (currentNanoTime - startTime) / 1_000_000_000.0
-            val elapsedMinutes = elapsedTime / 60
-            val elapsedSeconds = elapsedTime % 60
-            timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
         }
     }.start()
     mainStage.show()
@@ -373,10 +377,7 @@ class GameFrame : Application() {
         for (fsl in fields){
             for (f in fsl){
                 if (addEff){
-                    if ((middleField?.isNeighbour(f) == true ||
-                        phase1Placing ||
-                        players[currentPlayerTurn].canFly) &&
-                        f.pieceStored == null){
+                    if (isStepCorrect(middleField, f, currentPlayerTurn)){
 
                         f.effect = DropShadow(10.0, Color.GREEN)
                     }
@@ -384,6 +385,12 @@ class GameFrame : Application() {
                 else f.effect = null
             }
         }
+    }
+    private fun isStepCorrect(fieldFrom: Field?, fieldTo: Field, playerIdx: Int): Boolean{
+        return (fieldFrom?.isNeighbour(fieldTo) == true ||
+                phase1Placing ||
+                players[playerIdx].canFly) &&
+                fieldTo.pieceStored == null
     }
     private fun fieldIdxToCoord(op: Array<Boolean>, k: Array<Boolean>) :Array<Int>{
         val x: Int
@@ -429,48 +436,55 @@ class GameFrame : Application() {
 
 
     private fun clickOnPiece(p: Piece){
-        //Checks player of the selected piece
-        if (p.getColor == players[currentPlayerTurn].playerColor && !phaseRemoving){
-            //Checks if it's selected or unselected
-            if (previouslySelectedPiece != p){
-                //Prevents players to select the already placed pieces in phase 1
-                if (phase1Placing && p.parentField == null){
-                    selOrUnselPiece(p, true)
-                    addOrDelEffectOnField(p.parentField, true)
+        if (gameInPrgoress) {
+            //Checks player of the selected piece
+            if (p.getColor == players[currentPlayerTurn].playerColor && !phaseRemoving){
+                //Checks if it's selected or unselected
+                if (previouslySelectedPiece != p){
+                    //Prevents players to select the already placed pieces in phase 1
+                    if (phase1Placing && p.parentField == null){
+                        selOrUnselPiece(p, true)
+                        addOrDelEffectOnField(p.parentField, true)
 
-                    setInstructionText("Figura kiválasztva, rakd le valahova")
-                }
-                else if (!phase1Placing) {
-                    selOrUnselPiece(p, true)
-                    addOrDelEffectOnField(p.parentField, true)
+                        setInstructionText("Figura kiválasztva, rakd le valahova")
+                    }
+                    else if (!phase1Placing) {
+                        selOrUnselPiece(p, true)
+                        addOrDelEffectOnField(p.parentField, true)
 
-                    setInstructionText("Figura kiválasztva, rakd le valahova")
+                        setInstructionText("Figura kiválasztva, rakd le valahova")
+                    }
+                    else{
+                        setInstructionText("Ezt már leraktad, mit csinálsz?!")
+                    }
                 }
                 else{
-                    setInstructionText("Ezt már leraktad, mit csinálsz?!")
+                    selOrUnselPiece(p, false)
+                    addOrDelEffectOnField(p.parentField, false)
                 }
             }
-            else{
-                selOrUnselPiece(p, false)
-                addOrDelEffectOnField(p.parentField, false)
-            }
-        }
-        //Checks the other player in the Removing Phase
-        else if(p.getColor != players[currentPlayerTurn].playerColor && phaseRemoving){
-            //Checks that the selected piece is removable
-            if (p in removablePieces){
-                p.parentField?.pieceStored = null
-                p.parentField = null
-                p.isVisible = false
-                players[getOtherPlayer()].piecesList.remove(p)
+            //Checks the other player in the Removing Phase
+            else if(p.getColor != players[currentPlayerTurn].playerColor && phaseRemoving){
+                //Checks that the selected piece is removable
+                if (p in removablePieces){
+                    p.parentField?.pieceStored = null
+                    p.parentField = null
+                    p.isVisible = false
+                    players[getOtherPlayer()].piecesList.remove(p)
 
-                changeRemovingPhase(false)
-                changePlayerTurn()
-                setInstructionText("meg volt a kukázás te jössz sry")
+                    changeRemovingPhase(false)
+                    changePlayerTurn()
+                    setInstructionText("meg volt a kukázás te jössz sry")
+                    if(players[currentPlayerTurn].piecesList.size == 3){
+                        players[currentPlayerTurn].canFly = true
+                        setInstructionText("Mostmár ugrálhatsz te szerencsétlen xddx")
+                    }
+                    checkGameEnded()
+                }
             }
-        }
-        else {
-            setInstructionText("NONO!")
+            else {
+                setInstructionText("NONO!")
+            }
         }
     }
     private fun clickOnField(f: Field) {
@@ -510,6 +524,7 @@ class GameFrame : Application() {
                     //If there's no new mill, the game continuous
                     else{
                         changePlayerTurn()
+                        checkGameEnded()
                     }
                 }
                 else {
@@ -537,10 +552,9 @@ class GameFrame : Application() {
             }
         }
         //Also checking vertically and horizontally in the layers
-        i = 1
         var pieceCounterH = 0
         var pieceCounterV = 0
-        while (i <= 3){
+        for (i in 1..3){
             for (fl in fields[(placeField?.getLayer ?: 0) -1]){
                 //Checks that the current player's pieces are on the checked fields
                 if (fl.pieceStored?.getColor == players[checkedPlayer].playerColor){
@@ -554,7 +568,6 @@ class GameFrame : Application() {
                     }
                 }
             }
-            i += 1
         }
         return pieceCounterM == 3 || pieceCounterH == 3 || pieceCounterV == 3
     }
@@ -567,11 +580,11 @@ class GameFrame : Application() {
                 if (p.parentField != null &&
                     !checkMill(p.parentField, getOtherPlayer())){
                     removablePieces.add(p)
-                    p?.effect = DropShadow(10.0, Color.RED)
+                    p.effect = DropShadow(10.0, Color.RED)
                 }
             }
             else{
-                p?.effect = null
+                p.effect = null
             }
         }
         //If there are no removable pieces, then the Removing Phase should be ended
@@ -582,6 +595,32 @@ class GameFrame : Application() {
         }
         //Clears the list of the removable list at the end of the phase
         if (!activatePhase) removablePieces.clear()
+    }
+    private fun checkGameEnded(){
+        for (player in players){
+            //The game ends when one player has less than 3 pieces
+            if (player.piecesList.size < 3){
+                gameInPrgoress = false
+
+                setInstructionText("VÉGEEEE (mert nincs több bábu): " + player.name.toString())
+            }
+            //Or if a player's all pieces are surrounded, so that player can't move
+            var playerStucked = true
+            for (piece in player.piecesList){
+                for (fsl in fields){
+                    for (f in fsl){
+                        if (isStepCorrect(piece.parentField, f, players.indexOf(player))){
+                            playerStucked = false
+                            break
+                        }
+                    }
+                }
+            }
+            if (playerStucked){
+                gameInPrgoress = false
+                setInstructionText("VÉGEEEE (mert nem tudsz lépni): " + player.name.toString())
+            }
+        }
     }
 
 
