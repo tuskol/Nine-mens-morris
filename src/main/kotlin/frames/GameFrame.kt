@@ -52,6 +52,7 @@ class GameFrame : Application() {
     private var currentPlayerTurn = 0 //Starer Player id
     private var phase1Placing: Boolean = true
     private var countPiecesOnField = 0
+    private var phaseRemoving: Boolean = false
 
     //Resources
     private lateinit var backgroundImage: Image
@@ -215,40 +216,26 @@ class GameFrame : Application() {
                           layer:Int,
                           color: Color = Color.GRAY,
                           lineWidth:Double = 20.0) : Line{
+        var calcStartPoints = calcLayoutPoints(layer, startPoint)
+        var calcEndPoints = calcLayoutPoints(layer, endPoint)
 
-        val smx = centerPoints[0] + (if (startPoint[0]) 1 else -1) *
-                (fieldImage.width + SPACING) * layer + (fieldImage.width) / 2.0
-        val smy = centerPoints[1] + (if (startPoint[1]) 1 else -1) *
-                (fieldImage.height + SPACING) * layer + (fieldImage.height) / 2.0
-
-        val emx = centerPoints[0] + (if (endPoint[0]) 1 else -1) *
-                (fieldImage.width + SPACING) * layer + (fieldImage.width) / 2.0
-        val emy = centerPoints[1] + (if (endPoint[1]) 1 else -1) *
-                (fieldImage.height + SPACING) * layer + (fieldImage.height) / 2.0
-
-        val line = Line(smx, smy, emx, emy)
+        val line = Line(calcStartPoints[0], calcStartPoints[1], calcEndPoints[0], calcEndPoints[1])
         line.stroke = color
         line.strokeWidth = lineWidth
         line.toBack()
         return line
     }
-
     private fun drawCrossLines(op: Boolean,
                                horizontal: Boolean,
                                color: Color = Color.GRAY,
                                lineWidth:Double = 20.0) : Line {
+        val ops = arrayOf(op, op)
+        val k = arrayOf(horizontal, !horizontal)
 
-        val smx = centerPoints[0] + ((if (op) 1 else -1) *
-                (if (horizontal) 1 else 0) * (fieldImage.width + SPACING) * 3) + ((fieldImage.width) / 2.0)
-        val smy = centerPoints[1] + (if (op) 1 else -1) *
-                (if (horizontal) 0 else 1)*(fieldImage.height + SPACING) * 3 + (fieldImage.height) / 2.0
+        val calcStartPoints = calcLayoutPoints(3, ops, k)
+        val calcEndPoints = calcLayoutPoints(1, ops, k)
 
-        val emx = centerPoints[0] + (if (op) 1 else -1) *
-                (if (horizontal) 1 else 0)*(fieldImage.width + SPACING) * 1 + (fieldImage.width) / 2.0
-        val emy = centerPoints[1] + (if (op) 1 else -1) *
-                (if (horizontal) 0 else 1)*(fieldImage.height + SPACING) * 1 + (fieldImage.height) / 2.0
-
-        val line = Line(smx, smy, emx, emy)
+        val line = Line(calcStartPoints[0], calcStartPoints[1], calcEndPoints[0], calcEndPoints[1])
         line.stroke = color
         line.strokeWidth = lineWidth
         line.toBack()
@@ -273,12 +260,32 @@ class GameFrame : Application() {
             clickOnField(f)
         }
 
-        f.layoutX = centerPoints[0] + (if (op[0]) 1 else -1) *
-                ((if (k[0]) 1 else 0))*(fieldImage.width + SPACING) * layer
-        f.layoutY = centerPoints[1] + (if (op[1]) 1 else -1) *
-                ((if (k[1]) 1 else 0))*(fieldImage.height + SPACING) * layer
+        val coord = calcLayoutPoints(layer, op, k, false)
+        f.layoutX = coord[0]
+        f.layoutY = coord[1]
 
         return f
+    }
+    /**
+     * @param op Operator that moves the elements horizontally and vertically.
+     * + true means +
+     * + false mean -
+     * @param k This parameter allows the elements to move horizontally and vertically.
+     *          This helps to place them to the middle of their line
+     * @return Calculated layout coordinates
+     */
+    private fun calcLayoutPoints(layer: Int,
+                                 op:Array<Boolean>,
+                                 k:Array<Boolean> = arrayOf(true, true),
+                                 placeMiddle: Boolean = true): Array<Double>
+    {
+        val x = centerPoints[0] + (if (op[0]) 1 else -1) *
+                ((if (k[0]) 1 else 0))*(fieldImage.width + SPACING) * layer +
+                ((if (placeMiddle) 1 else 0))*(fieldImage.width) / 2.0
+        val y = centerPoints[1] + (if (op[1]) 1 else -1) *
+                ((if (k[1]) 1 else 0))*(fieldImage.height + SPACING) * layer +
+                ((if (placeMiddle) 1 else 0))*(fieldImage.height) / 2.0
+        return arrayOf(x, y)
     }
     private fun initPiece(id:Int,
                           color: Color,
@@ -405,17 +412,11 @@ class GameFrame : Application() {
         }
         return arrayOf(x, y)
     }
-    private fun fieldIdxFromCoord(coordinates: Array<Int>) : Int{
-        val idx = 0
-
-        return idx
-    }
     private fun setInstructionText(newInstruction: String){
         instructionTextArea.text = newInstruction
     }
     private fun changePlayerTurn(){
-        if (currentPlayerTurn == 0) currentPlayerTurn = 1
-        else currentPlayerTurn = 0
+        currentPlayerTurn = if (currentPlayerTurn == 0) 1 else 0
     }
 
 
@@ -479,7 +480,11 @@ class GameFrame : Application() {
                             setInstructionText("Nincs több pakolás ááááá")
                         }
                     }
-                    checkMill(f)
+                    if (checkMill(f)){
+                        setInstructionText("MALOM VAN GECOO")
+                        changeDeletingPhase()
+                    }
+
                     changePlayerTurn()
                 }
                 else {
@@ -492,25 +497,18 @@ class GameFrame : Application() {
         }
     }
 
-    private fun checkMill(placeField: Field){
+    private fun checkMill(placeField: Field): Boolean{
         var i = 0
-        var fieldIdx = fields[placeField.getLayer-1].indexOf(placeField)
-
+        var pieceCounterM = 0
         //Check middle lines where the layers are connected
         if (placeField.getHorizontal == 2 || placeField.getVertical == 2) {
-            var pieceCounter = 0
-            //var getPieceIdx = players[currentPlayerTurn].piecesList.indexOf(placeField.pieceStored)
-
+            val fieldIdx = fields[placeField.getLayer-1].indexOf(placeField)
             while (i < 3){
                 //Checks that the current player's pieces are on the checked fields
                 if (fields[i][fieldIdx].pieceStored?.getColor == players[currentPlayerTurn].playerColor){
-                    pieceCounter += 1
+                    pieceCounterM += 1
                 }
                 i += 1
-            }
-
-            if (pieceCounter == 3){
-                setInstructionText("MALOM VAN GECOO")
             }
         }
         //Also checking vertically and horizontally in the layers
@@ -519,7 +517,7 @@ class GameFrame : Application() {
         var pieceCounterV = 0
         while (i <= 3){
             for (fl in fields[placeField.getLayer-1]){
-
+                //Checks that the current player's pieces are on the checked fields
                 if (fl.pieceStored?.getColor == players[currentPlayerTurn].playerColor){
                     //Check horizontally
                     if (fl.getVertical == placeField.getVertical && fl.getHorizontal == i) {
@@ -533,9 +531,10 @@ class GameFrame : Application() {
             }
             i += 1
         }
-        if (pieceCounterH == 3 || pieceCounterV == 3){
-            setInstructionText("MALOM VAN GECOO")
-        }
+        return pieceCounterM == 3 || pieceCounterH == 3 || pieceCounterV == 3
+    }
+    private fun changeDeletingPhase(){
+
     }
 
 
