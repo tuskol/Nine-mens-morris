@@ -27,6 +27,8 @@ import javafx.scene.text.FontWeight
 import javafx.stage.Stage
 
 //TODO: Az minta dolgokat kiszedni (mint a nap, meg a többi)
+//TODO: Játékos név megjelenítése
+//TODO: Néhány statisztika: (pl. malmok száma, meglévő bábuk, eddig tett lépések ,stb)
 class GameFrame : Application() {
 
     companion object {
@@ -197,10 +199,10 @@ class GameFrame : Application() {
         while (i < 9){
             var p = initPiece(i, players[0].playerColor, arrayOf(x, 10.0))
 
-            players[0]?.piecesList?.add(p)
+            players[0].piecesList.add(p)
             parent.children.add(p)
             p = initPiece(i, players[1].playerColor, arrayOf(x, (HEIGHT- whitePiecePic.height) - 8.0))
-            players[1]?.piecesList?.add(p)
+            players[1].piecesList.add(p)
             parent.children.add(p)
 
             x += whitePiecePic.width + 15
@@ -264,7 +266,7 @@ class GameFrame : Application() {
     private fun makeFields(layer:Int,
                            op:Array<Boolean>,
                            k:Array<Boolean> = arrayOf(true, true), ) : Field{
-        val hv = filedIdxToCoord(op, k)
+        val hv = fieldIdxToCoord(op, k)
         val f = Field(layer, hv[0], hv[1])
 
         f.setOnMouseClicked {
@@ -371,7 +373,7 @@ class GameFrame : Application() {
             }
         }
     }
-    private fun filedIdxToCoord(op: Array<Boolean>, k: Array<Boolean>) :Array<Int>{
+    private fun fieldIdxToCoord(op: Array<Boolean>, k: Array<Boolean>) :Array<Int>{
         val x: Int
         val y: Int
 
@@ -402,6 +404,11 @@ class GameFrame : Application() {
             }
         }
         return arrayOf(x, y)
+    }
+    private fun fieldIdxFromCoord(coordinates: Array<Int>) : Int{
+        val idx = 0
+
+        return idx
     }
     private fun setInstructionText(newInstruction: String){
         instructionTextArea.text = newInstruction
@@ -472,6 +479,7 @@ class GameFrame : Application() {
                             setInstructionText("Nincs több pakolás ááááá")
                         }
                     }
+                    checkMill(f)
                     changePlayerTurn()
                 }
                 else {
@@ -482,22 +490,52 @@ class GameFrame : Application() {
                 setInstructionText("Nem szomszédos, mit csinálsz xdd")
             }
         }
+    }
 
+    private fun checkMill(placeField: Field){
+        var i = 0
+        var fieldIdx = fields[placeField.getLayer-1].indexOf(placeField)
 
-        /*
-        for (fsl in fields){
-            for (fs in fsl){
-                if (f.isNeighbour(fs)){
-                    fs?.effect = DropShadow(10.0, Color.YELLOW)
+        //Check middle lines where the layers are connected
+        if (placeField.getHorizontal == 2 || placeField.getVertical == 2) {
+            var pieceCounter = 0
+            //var getPieceIdx = players[currentPlayerTurn].piecesList.indexOf(placeField.pieceStored)
+
+            while (i < 3){
+                //Checks that the current player's pieces are on the checked fields
+                if (fields[i][fieldIdx].pieceStored?.getColor == players[currentPlayerTurn].playerColor){
+                    pieceCounter += 1
                 }
-                else {
-                    fs?.effect = null
-                }
+                i += 1
+            }
+
+            if (pieceCounter == 3){
+                setInstructionText("MALOM VAN GECOO")
             }
         }
-        f?.effect = DropShadow(10.0, Color.RED)
-        */
+        //Also checking vertically and horizontally in the layers
+        i = 1
+        var pieceCounterH = 0
+        var pieceCounterV = 0
+        while (i <= 3){
+            for (fl in fields[placeField.getLayer-1]){
 
+                if (fl.pieceStored?.getColor == players[currentPlayerTurn].playerColor){
+                    //Check horizontally
+                    if (fl.getVertical == placeField.getVertical && fl.getHorizontal == i) {
+                        pieceCounterH += 1
+                    }
+                    //Check vertically
+                    if (fl.getHorizontal == placeField.getHorizontal && fl.getVertical == i) {
+                        pieceCounterV += 1
+                    }
+                }
+            }
+            i += 1
+        }
+        if (pieceCounterH == 3 || pieceCounterV == 3){
+            setInstructionText("MALOM VAN GECOO")
+        }
     }
 
 
