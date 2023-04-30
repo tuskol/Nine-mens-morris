@@ -27,8 +27,6 @@ import javafx.scene.text.FontWeight
 import javafx.stage.Stage
 
 //TODO: Az minta dolgokat kiszedni (mint a nap, meg a többi)
-//TODO: Játékos név megjelenítése
-//TODO: Néhány statisztika: (pl. malmok száma, meglévő bábuk, eddig tett lépések ,stb)
 class GameFrame : Application() {
 
     companion object {
@@ -44,6 +42,8 @@ class GameFrame : Application() {
     //UI Elements
     private lateinit var timePassedLabel: Label
     private lateinit var instructionTextArea: TextArea
+    private val playerNameText = mutableListOf<Label>()
+    private val playerStatTexts: MutableList<MutableMap<String, Label>> = mutableListOf()
 
     //Game Elements
     private var gameInPrgoress: Boolean = true
@@ -92,11 +92,8 @@ class GameFrame : Application() {
 
     graphicsContext = canvas.graphicsContext2D
 
-    //piecesList[Color.WHITE] = mutableListOf()
-    //piecesList[Color.BLACK] = mutableListOf()
-
-    players.add(Player(Color.WHITE))
-    players.add(Player(Color.BLACK))
+    players.add(Player(Color.WHITE, "Player White"))
+    players.add(Player(Color.BLACK, "Player Black"))
 
     loadBoard(gameGroup)
     loadUI(uiGroup)
@@ -201,11 +198,11 @@ class GameFrame : Application() {
         //Initializing and drawing the pieces
         var x = (WIDTH_GAME-pHolder.width)/2.0 + 15.0
         for (i in 0..8){
-            var p = initPiece(i, players[0].playerColor, arrayOf(x, 10.0))
+            var p = initPiece(i, players[0].color, arrayOf(x, 10.0))
 
             players[0].piecesList.add(p)
             parent.children.add(p)
-            p = initPiece(i, players[1].playerColor, arrayOf(x, (HEIGHT- whitePiecePic.height) - 8.0))
+            p = initPiece(i, players[1].color, arrayOf(x, (HEIGHT- whitePiecePic.height) - 8.0))
             players[1].piecesList.add(p)
             parent.children.add(p)
 
@@ -311,17 +308,43 @@ class GameFrame : Application() {
 
         val uiTitleLabel = initLabel("Nine Men's Morris", 25.0, "Arial", FontWeight.BOLD)
 
-        val playersNHBox = HBox((WIDTH_UI/3).toDouble())
-        HBox.setHgrow(playersNHBox, Priority.ALWAYS)
-        playersNHBox.minWidth = WIDTH_UI.toDouble()
-        playersNHBox.minHeight = 50.0
-        playersNHBox.alignment = Pos.CENTER
-
-        playersNHBox.style = "-fx-background-color:#D3D3D3"
+        val playersHeaderHBox = initHBox(minHeight=50.0)
+        playersHeaderHBox.style = "-fx-background-color:#D3D3D3"
         val playerWhiteText = initLabel("WHITE", 15.0, fontWeight=FontWeight.BOLD)
         val playerBlackText = initLabel("BLACK", 15.0, fontWeight=FontWeight.BOLD)
         playerWhiteText.textFill = Color.WHITE
         playerBlackText.textFill = Color.BLACK
+
+        val playersNameHBox = initHBox(minHeight=30.0)
+        playerNameText.add(initLabel(players[0].name, 12.0, fontWeight=FontWeight.BOLD))
+        playerNameText.add(initLabel(players[1].name, 12.0))
+
+        val line = Line(0.0, 0.0, 205.0, 0.0)
+        line.strokeWidth = 2.5
+        line.stroke = Color.GRAY
+
+        val playersStatsHBox = initHBox(spacing=20.0, minHeight=30.0)
+
+        val playersPropVBox = mutableListOf<VBox>()
+        val playersSVBox1 = initVBox(10.0)
+        val playersSVBox2 = initVBox(10.0)
+        playersPropVBox.add(playersSVBox1)
+        playersPropVBox.add(playersSVBox2)
+
+
+        for (i in 0..1){
+            val newPlayerStat = mutableMapOf<String, Label>()
+            playerStatTexts.add(newPlayerStat)
+
+            playerStatTexts[i]["pieces"] = initLabel("Number of Pieces: 9", 12.0)
+            playerStatTexts[i]["steps"] = initLabel("Steps taken: 0", 12.0)
+            playerStatTexts[i]["mills"] = initLabel("Mills placed: 0", 12.0)
+
+            for (pst in playerStatTexts[i]) {
+                playersPropVBox[i].children.addAll(pst.value)
+            }
+        }
+
 
 
         instructionTextArea = TextArea("Instruction panel\n" +
@@ -329,18 +352,21 @@ class GameFrame : Application() {
         instructionTextArea.maxWidth = WIDTH_UI.toDouble() - 10.0
         instructionTextArea.isEditable = false
         instructionTextArea.isWrapText = true
+        //instructionTextArea.style = "-fx-control-inner-background: #D3D3D3;"
         //instructionTextArea.alignment = Pos.CENTER
 
         timePassedLabel = initLabel("Elapsed time: ..")
 
-        uiMainVBox.children.addAll(uiTitleLabel, playersNHBox, instructionTextArea)
+        uiMainVBox.children.addAll(uiTitleLabel, playersHeaderHBox, playersNameHBox, line, playersStatsHBox, instructionTextArea)
         uiMainVBox.children.add(timePassedLabel)
-        playersNHBox.children.addAll(playerWhiteText, playerBlackText)
+        playersHeaderHBox.children.addAll(playerWhiteText, playerBlackText)
+        playersNameHBox.children.addAll(playerNameText)
+        playersStatsHBox.children.addAll(playersPropVBox)
 
         parent.children.add(uiMainVBox)
     }
 
-    private  fun initLabel(text:String,
+    private fun initLabel(text:String,
                            size:Double=15.0,
                            fontFamily:String="System",
                            fontWeight:FontWeight=FontWeight.NORMAL) : Label {
@@ -348,13 +374,30 @@ class GameFrame : Application() {
         label.font = Font.font(fontFamily, fontWeight, size)
         return label
     }
-
+    private fun initHBox(spacing: Double = (WIDTH_UI/4).toDouble(),
+                         minHeight: Double = 30.0): HBox{
+        val nHBox = HBox(spacing)
+        HBox.setHgrow(nHBox, Priority.ALWAYS)
+        nHBox.minWidth = WIDTH_UI.toDouble()
+        nHBox.minHeight = minHeight
+        nHBox.alignment = Pos.CENTER
+        return nHBox
+    }
+    private fun initVBox(spacing: Double = (WIDTH_UI/3).toDouble(),
+                         minWidth: Double = WIDTH_UI / 4.0,
+                         minHeight: Double = 30.0): VBox{
+        val nVBox = VBox(spacing)
+        VBox.setVgrow(nVBox, Priority.ALWAYS)
+        nVBox.minWidth = minWidth
+        nVBox.minHeight = minHeight
+        nVBox.alignment = Pos.CENTER
+        return nVBox
+    }
 
     private fun placePieceOnField(field: Field, piece: Piece?){
         piece?.layoutX = field.layoutX + (field.image.width - (piece?.image?.width ?: 0.0)) / 2.0
         piece?.layoutY = field.layoutY + (field.image.height - (piece?.image?.height ?: 0.0)) / 2.0
     }
-
     private fun selOrUnselPiece(piece: Piece?, addEff:Boolean){
         if (addEff){
             previouslySelectedPiece?.effect = null
@@ -425,7 +468,11 @@ class GameFrame : Application() {
         instructionTextArea.text = newInstruction
     }
     private fun changePlayerTurn(){
+        playerNameText[currentPlayerTurn].font =
+            Font.font(playerNameText[currentPlayerTurn].font.family, FontWeight.NORMAL, playerNameText[currentPlayerTurn].font.size)
         currentPlayerTurn = getOtherPlayer()
+        playerNameText[currentPlayerTurn].font =
+            Font.font(playerNameText[currentPlayerTurn].font.family, FontWeight.BOLD, playerNameText[currentPlayerTurn].font.size)
     }
     private fun getOtherPlayer(): Int{
         return if (currentPlayerTurn == 0) 1 else 0
@@ -435,7 +482,7 @@ class GameFrame : Application() {
     private fun clickOnPiece(p: Piece){
         if (gameInPrgoress) {
             //Checks player of the selected piece
-            if (p.getColor == players[currentPlayerTurn].playerColor && !phaseRemoving){
+            if (p.getColor == players[currentPlayerTurn].color && !phaseRemoving){
                 //Checks if it's selected or unselected
                 if (previouslySelectedPiece != p){
                     //Prevents players to select the already placed pieces in phase 1
@@ -461,13 +508,15 @@ class GameFrame : Application() {
                 }
             }
             //Checks the other player in the Removing Phase
-            else if(p.getColor != players[currentPlayerTurn].playerColor && phaseRemoving){
+            else if(p.getColor != players[currentPlayerTurn].color && phaseRemoving){
                 //Checks that the selected piece is removable
                 if (p in removablePieces){
                     p.parentField?.pieceStored = null
                     p.parentField = null
                     p.isVisible = false
                     players[getOtherPlayer()].piecesList.remove(p)
+
+                    updatePlayerStat("pieces", players[getOtherPlayer()].piecesList.size, getOtherPlayer())
 
                     changeRemovingPhase(false)
                     changePlayerTurn()
@@ -501,6 +550,8 @@ class GameFrame : Application() {
                     placePieceOnField(f, previouslySelectedPiece)
                     selOrUnselPiece(previouslySelectedPiece, false)
 
+                    players[currentPlayerTurn].takenSteps += 1
+                    updatePlayerStat("steps", players[currentPlayerTurn].takenSteps, currentPlayerTurn)
                     setInstructionText("Figura lerakva, MÁSIK játékos jön")
 
                     //In phase 1 we need to count the second player's placed pieces
@@ -515,6 +566,8 @@ class GameFrame : Application() {
                     }
                     //If there's a mill, the current player can remove a piece from the other player
                     if (checkMill(f)){
+                        players[currentPlayerTurn].millsPlaced += 1
+                        updatePlayerStat("mills", players[currentPlayerTurn].millsPlaced, currentPlayerTurn)
                         setInstructionText("MALOM VAN GECOO")
                         changeRemovingPhase(true)
                     }
@@ -541,7 +594,7 @@ class GameFrame : Application() {
             val fieldIdx = fields[placeField.getLayer-1].indexOf(placeField)
             for (i in 0..2){
                 //Checks that the current player's pieces are on the checked fields
-                if (fields[i][fieldIdx].pieceStored?.getColor == players[checkedPlayer].playerColor){
+                if (fields[i][fieldIdx].pieceStored?.getColor == players[checkedPlayer].color){
                     pieceCounterM += 1
                 }
             }
@@ -552,7 +605,7 @@ class GameFrame : Application() {
         for (i in 1..3){
             for (fl in fields[(placeField?.getLayer ?: 0) -1]){
                 //Checks that the current player's pieces are on the checked fields
-                if (fl.pieceStored?.getColor == players[checkedPlayer].playerColor){
+                if (fl.pieceStored?.getColor == players[checkedPlayer].color){
                     //Check horizontally
                     if (fl.getVertical == placeField?.getVertical && fl.getHorizontal == i) {
                         pieceCounterH += 1
@@ -575,7 +628,7 @@ class GameFrame : Application() {
                 if (p.parentField != null &&
                     !checkMill(p.parentField, getOtherPlayer())){
                     removablePieces.add(p)
-                    p.effect = DropShadow(10.0, Color.RED)
+                    p.effect = DropShadow(13.0, Color.RED)
                 }
             }
             else{
@@ -597,7 +650,7 @@ class GameFrame : Application() {
             if (player.piecesList.size < 3){
                 gameInPrgoress = false
 
-                setInstructionText("VÉGEEEE (mert nincs több bábu): " + player.name.toString())
+                setInstructionText("VÉGEEEE (mert nincs több bábu): " + player.name)
             }
             //Or if a player's all pieces are surrounded, so that player can't move
             var playerStucked = true
@@ -613,8 +666,15 @@ class GameFrame : Application() {
             }
             if (playerStucked){
                 gameInPrgoress = false
-                setInstructionText("VÉGEEEE (mert nem tudsz lépni): " + player.name.toString())
+                setInstructionText("VÉGEEEE (mert nem tudsz lépni): " + player.name)
             }
+        }
+    }
+    private fun updatePlayerStat(type:String, newValue: Int, playerIdx: Int){
+        when(type){
+            "pieces" -> playerStatTexts[playerIdx][type]?.text = "Number of Pieces: $newValue"
+            "steps" -> playerStatTexts[playerIdx][type]?.text = "Steps taken: $newValue"
+            "mills" -> playerStatTexts[playerIdx][type]?.text = "Mills placed: $newValue"
         }
     }
 
