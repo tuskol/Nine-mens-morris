@@ -162,8 +162,8 @@ class GameFrame : Application() {
         parent.children.add(drawCrossLines(op=true, horizontal=true))
         //draws the lower-side vertical line
         parent.children.add(drawCrossLines(op=true, horizontal=false))
-        var i = 1
-        while (i <= 3){
+
+        for (i in 1..3){
             //Drawing the line between the fields in their layers
             //draws the upper horizontal line
             parent.children.add(makeLines(arrayOf(false, false), arrayOf(true, false), i))
@@ -196,13 +196,11 @@ class GameFrame : Application() {
             fields.last().add(makeFields(i, arrayOf(true, true)))
 
             parent.children.addAll(fields.last())
-            i++
         }
 
         //Initializing and drawing the pieces
-        i = 0
         var x = (WIDTH_GAME-pHolder.width)/2.0 + 15.0
-        while (i < 9){
+        for (i in 0..8){
             var p = initPiece(i, players[0].playerColor, arrayOf(x, 10.0))
 
             players[0].piecesList.add(p)
@@ -212,7 +210,6 @@ class GameFrame : Application() {
             parent.children.add(p)
 
             x += whitePiecePic.width + 15
-            i++
         }
     }
 
@@ -538,17 +535,15 @@ class GameFrame : Application() {
     }
 
     private fun checkMill(placeField: Field?, checkedPlayer: Int = currentPlayerTurn): Boolean{
-        var i = 0
         var pieceCounterM = 0
         //Check middle lines where the layers are connected
         if (placeField?.getHorizontal == 2 || placeField?.getVertical == 2) {
             val fieldIdx = fields[placeField.getLayer-1].indexOf(placeField)
-            while (i < 3){
+            for (i in 0..2){
                 //Checks that the current player's pieces are on the checked fields
                 if (fields[i][fieldIdx].pieceStored?.getColor == players[checkedPlayer].playerColor){
                     pieceCounterM += 1
                 }
-                i += 1
             }
         }
         //Also checking vertically and horizontally in the layers
