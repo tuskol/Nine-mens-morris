@@ -14,14 +14,9 @@ class Piece(private val id: Int, private val color: Color) : ImageView() {
 
     var parentField: Field? = null
 
-    //private val id = id
-    //private val kivalaszthato = false, private var torolhato:kotlin.Boolean = false
-
     init {
         if (color == Color.WHITE) this.image = Image(getResource("/pieceWhite.png"))
         else if (color == Color.BLACK) this.image = Image(getResource("/pieceBlack.png"))
-        //else //TODO: valami hibaüzenet szerű
+        else println("WARNING! There is no image for this color!!!")
     }
-
-    //public fun getPieceImage() : Image {return image}
 }

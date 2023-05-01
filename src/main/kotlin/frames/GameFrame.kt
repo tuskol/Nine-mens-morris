@@ -12,6 +12,7 @@ import javafx.scene.Group
 import javafx.scene.Scene
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
+import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.TextArea
 import javafx.scene.effect.DropShadow
@@ -27,6 +28,7 @@ import javafx.scene.text.FontWeight
 import javafx.stage.Stage
 
 //TODO: Az minta dolgokat kiszedni (mint a nap, meg a többi)
+//TODO: Értelmes utasítások leírása
 class GameFrame : Application() {
 
     companion object {
@@ -44,6 +46,7 @@ class GameFrame : Application() {
     private lateinit var instructionTextArea: TextArea
     private val playerNameText = mutableListOf<Label>()
     private val playerStatTexts: MutableList<MutableMap<String, Label>> = mutableListOf()
+    private lateinit var pauseButton: Button
 
     //Game Elements
     private var gameInPrgoress: Boolean = true
@@ -60,17 +63,22 @@ class GameFrame : Application() {
     private lateinit var backgroundImage: Image
     private lateinit var fieldImage: Image
     //private lateinit var sun: Image
+    private lateinit var whitePiecePic: Image
 
     private val centerPoints: Array<Double> = Array(2) { 0.0 }
 
     private var sunX = WIDTH_GAME / 2
     private var sunY = HEIGHT / 2
 
+    private var pieceNewLocations: Array<Double> = Array(2) { 0.0 }
+
     private var lastFrameTime: Long = System.nanoTime()
 
     // use a set so duplicates are not possible
     private val currentlyActiveKeys = mutableSetOf<KeyCode>()
     private var startTime = 0L
+    private var pauseStartTime = 0L
+    private var timeInPaused = 0L
 
     override fun start(mainStage: Stage) {
     mainStage.title = "Kotlin HW - Nine Men's Morris"
@@ -102,16 +110,26 @@ class GameFrame : Application() {
     object : AnimationTimer() {
         override fun handle(currentNanoTime: Long) {
             //tickAndRender(currentNanoTime)
+            animatePiece(currentNanoTime)
 
 
             if (gameInPrgoress){
                 if (startTime == 0L) {
                     startTime = currentNanoTime
                 }
-                val elapsedTime = (currentNanoTime - startTime) / 1_000_000_000.0
+                val elapsedTime = (currentNanoTime - startTime - timeInPaused) / 1_000_000_000.0
                 val elapsedMinutes = elapsedTime / 60
                 val elapsedSeconds = elapsedTime % 60
                 timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
+            }
+            else {
+                //TODO: az időmérő bajos ha megállítom
+                /*
+                if (pauseStartTime == 0L){
+                    pauseStartTime = currentNanoTime
+                }
+                timeInPaused += currentNanoTime - pauseStartTime
+                */
             }
         }
     }.start()
@@ -147,7 +165,7 @@ class GameFrame : Application() {
         centerPoints[1] = (HEIGHT - fieldImage.height) / 2.0
 
 
-        val whitePiecePic = Image(getResource("/pieceWhite.png"))
+        whitePiecePic = Image(getResource("/pieceWhite.png"))
 
 
         //Drawing the lines and fields
@@ -331,7 +349,6 @@ class GameFrame : Application() {
         playersPropVBox.add(playersSVBox1)
         playersPropVBox.add(playersSVBox2)
 
-
         for (i in 0..1){
             val newPlayerStat = mutableMapOf<String, Label>()
             playerStatTexts.add(newPlayerStat)
@@ -345,8 +362,6 @@ class GameFrame : Application() {
             }
         }
 
-
-
         instructionTextArea = TextArea("Instruction panel\n" +
                                 "Here comes all the instructions")
         instructionTextArea.maxWidth = WIDTH_UI.toDouble() - 10.0
@@ -357,8 +372,27 @@ class GameFrame : Application() {
 
         timePassedLabel = initLabel("Elapsed time: ..")
 
-        uiMainVBox.children.addAll(uiTitleLabel, playersHeaderHBox, playersNameHBox, line, playersStatsHBox, instructionTextArea)
-        uiMainVBox.children.add(timePassedLabel)
+
+
+        pauseButton = Button("Pause Game")
+        pauseButton.setOnAction {
+            if (gameInPrgoress){
+                pauseButton.text = "Continue Game"
+                gameInPrgoress = false
+            }
+            else{
+                pauseButton.text = "Pause Game"
+                gameInPrgoress = true
+            }
+        }
+        val newGameButton = Button("New Game")
+        newGameButton.setOnAction {
+            //TODO new game button
+        }
+
+
+        uiMainVBox.children.addAll(uiTitleLabel, playersHeaderHBox, playersNameHBox, line,
+            playersStatsHBox, instructionTextArea, timePassedLabel, pauseButton, newGameButton)
         playersHeaderHBox.children.addAll(playerWhiteText, playerBlackText)
         playersNameHBox.children.addAll(playerNameText)
         playersStatsHBox.children.addAll(playersPropVBox)
@@ -398,6 +432,11 @@ class GameFrame : Application() {
         piece?.layoutX = field.layoutX + (field.image.width - (piece?.image?.width ?: 0.0)) / 2.0
         piece?.layoutY = field.layoutY + (field.image.height - (piece?.image?.height ?: 0.0)) / 2.0
     }
+    private fun getFieldlocation(field: Field, piece: Piece?) : Array<Double>{
+        return arrayOf(field.layoutX + (field.image.width - (piece?.image?.width ?: 0.0)) / 2.0,
+            field.layoutY + (field.image.height - (piece?.image?.height ?: 0.0)) / 2.0)
+    }
+
     private fun selOrUnselPiece(piece: Piece?, addEff:Boolean){
         if (addEff){
             previouslySelectedPiece?.effect = null
@@ -493,6 +532,8 @@ class GameFrame : Application() {
                         setInstructionText("Figura kiválasztva, rakd le valahova")
                     }
                     else if (!phase1Placing) {
+                        addOrDelEffectOnField(previouslySelectedPiece?.parentField, false)
+
                         selOrUnselPiece(p, true)
                         addOrDelEffectOnField(p.parentField, true)
 
@@ -547,7 +588,8 @@ class GameFrame : Application() {
                     f.pieceStored = previouslySelectedPiece
                     previouslySelectedPiece?.parentField?.pieceStored = null
                     previouslySelectedPiece?.parentField = f
-                    placePieceOnField(f, previouslySelectedPiece)
+                    //placePieceOnField(f, previouslySelectedPiece)
+                    pieceNewLocations = getFieldlocation(f, previouslySelectedPiece)
                     selOrUnselPiece(previouslySelectedPiece, false)
 
                     players[currentPlayerTurn].takenSteps += 1
@@ -649,8 +691,8 @@ class GameFrame : Application() {
             //The game ends when one player has less than 3 pieces
             if (player.piecesList.size < 3){
                 gameInPrgoress = false
-
                 setInstructionText("VÉGEEEE (mert nincs több bábu): " + player.name)
+                pauseButton.isDisable = true
             }
             //Or if a player's all pieces are surrounded, so that player can't move
             var playerStucked = true
@@ -667,6 +709,7 @@ class GameFrame : Application() {
             if (playerStucked){
                 gameInPrgoress = false
                 setInstructionText("VÉGEEEE (mert nem tudsz lépni): " + player.name)
+                pauseButton.isDisable = true
             }
         }
     }
@@ -681,8 +724,36 @@ class GameFrame : Application() {
 
 
 
+    //TODO ANIMÁCIÓ
+    var piecePosX = 0.0
+    var piecePosY = 0.0
+    private fun animatePiece(currentNanoTime: Long){
+        // clear canvas
+        graphicsContext.clearRect(0.0, 0.0, WIDTH_GAME.toDouble(), HEIGHT.toDouble())
+        // draw background
+        graphicsContext.drawImage(backgroundImage, 0.0, 0.0)
 
+        val op = arrayOf((if (previouslySelectedPiece?.layoutX ?: 0.0 <= pieceNewLocations[0]) 1 else -1),
+            (if (previouslySelectedPiece?.layoutY ?: 0.0 <= pieceNewLocations[1]) 1 else -1))
 
+        //var piecePos: Double? = 0.0
+
+        /*if (previouslySelectedPiece?.layoutX ?: 0.0 <= pieceNewLocations[0]){
+            piecePos = previouslySelectedPiece?.layoutX?.plus(0.001 * op[0])
+        }*/
+
+        //piecePos?.plus(1.0)
+        updatePiecePosition(op)
+
+        /*if (piecePos != null) {
+            graphicsContext.drawImage(whitePiecePic, piecePos, 0.0)
+        }*/
+        graphicsContext.drawImage(whitePiecePic, piecePosX, piecePosY)
+    }
+    private fun updatePiecePosition(op: Array<Int>) {
+        piecePosX += op[0]
+        piecePosY += op[1]
+    }
 
     private fun tickAndRender(currentNanoTime: Long) {
         // the time elapsed since the last frame, in nanoseconds
@@ -692,7 +763,6 @@ class GameFrame : Application() {
 
         // clear canvas
         graphicsContext.clearRect(0.0, 0.0, WIDTH_GAME.toDouble(), HEIGHT.toDouble())
-
         // draw background
         graphicsContext.drawImage(backgroundImage, 0.0, 0.0)
 
