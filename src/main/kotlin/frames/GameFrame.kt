@@ -7,7 +7,6 @@ import elements.Player
 import javafx.animation.AnimationTimer
 import javafx.animation.TranslateTransition
 import javafx.application.Application
-import javafx.event.EventHandler
 import javafx.geometry.Pos
 import javafx.scene.Group
 import javafx.scene.Scene
@@ -64,23 +63,16 @@ class GameFrame : Application() {
     //Resources
     private lateinit var backgroundImage: Image
     private lateinit var fieldImage: Image
-    //private lateinit var sun: Image
     private lateinit var whitePiecePic: Image
 
     private val centerPoints: Array<Double> = Array(2) { 0.0 }
-
-    private var sunX = WIDTH_GAME / 2
-    private var sunY = HEIGHT / 2
-
-    private var pieceNewLocations: Array<Double> = Array(2) { 0.0 }
-
-    private var lastFrameTime: Long = System.nanoTime()
 
     // use a set so duplicates are not possible
     private val currentlyActiveKeys = mutableSetOf<KeyCode>()
     private var startTime = 0L
     private var pauseStartTime = 0L
     private var timeInPaused = 0L
+    private var timeElapsed = 0L
 
     override fun start(mainStage: Stage) {
     mainStage.title = "Kotlin HW - Nine Men's Morris"
@@ -98,7 +90,7 @@ class GameFrame : Application() {
     val canvas = Canvas(WIDTH_GAME.toDouble(), HEIGHT.toDouble())
     gameGroup.children.add(canvas)
 
-    prepareActionHandlers()
+    //prepareActionHandlers()
 
     graphicsContext = canvas.graphicsContext2D
 
@@ -111,34 +103,60 @@ class GameFrame : Application() {
     // Main loop
     object : AnimationTimer() {
         override fun handle(currentNanoTime: Long) {
-            //tickAndRender(currentNanoTime)
-            //animatePiece(currentNanoTime)
-
-
+            /*
             if (gameInPrgoress){
                 if (startTime == 0L) {
                     startTime = currentNanoTime
                 }
-                val elapsedTime = (currentNanoTime - startTime - timeInPaused) / 1_000_000_000.0
+                val elapsedTime = (currentNanoTime - startTime - timeElapsed) / 1_000_000_000.0
                 val elapsedMinutes = elapsedTime / 60
                 val elapsedSeconds = elapsedTime % 60
                 timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
             }
             else {
                 //TODO: az időmérő bajos ha megállítom
-                /*
+
                 if (pauseStartTime == 0L){
+                    pauseStartTime = currentNanoTime
+                    timeElapsed = currentNanoTime - startTime
+                }
+
+                /*if (pauseStartTime == 0L) {
                     pauseStartTime = currentNanoTime
                 }
                 timeInPaused += currentNanoTime - pauseStartTime
+                pauseStartTime = 0L // Reset pauseStartTime when game is resumed
                 */
             }
+             */
+            if (gameInPrgoress) {
+                if (startTime == 0L) {
+                    startTime = currentNanoTime
+                }
+                val elapsedTime = (currentNanoTime - startTime + timeElapsed) / 1_000_000_000.0
+                val elapsedMinutes = elapsedTime / 60
+                val elapsedSeconds = elapsedTime % 60
+                timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
+                pauseStartTime = 0L // reset pauseStartTime when game is running
+            } else {
+                if (pauseStartTime == 0L) {
+                    pauseStartTime = currentNanoTime
+                }
+                //timeInPaused = currentNanoTime - pauseStartTime
+                //timeInPaused = currentNanoTime - pauseStartTime
+                //val elapsedPausedTime = timeInPaused / 1_000_000_000.0
+                //val pausedMinutes = elapsedPausedTime / 60
+                //val pausedSeconds = elapsedPausedTime % 60
+                //timePassedLabel.text = "Paused time: " + String.format("%02.0f:%02.0f", pausedMinutes, pausedSeconds)
+
+        }
         }
     }.start()
     mainStage.show()
 }
 
 
+    /*
     private fun prepareActionHandlers() {
         mainScene.onKeyPressed = EventHandler { event ->
             currentlyActiveKeys.add(event.code)
@@ -146,7 +164,7 @@ class GameFrame : Application() {
         mainScene.onKeyReleased = EventHandler { event ->
             currentlyActiveKeys.remove(event.code)
         }
-    }
+    }*/
 
     private fun loadBoard(parent: Group) {
         // prefixed with / to indicate that the files are
@@ -314,9 +332,6 @@ class GameFrame : Application() {
         p.setOnMouseClicked {
             clickOnPiece(p)
         }
-        //p.layoutX = coordinates[0]
-        //p.layoutY = coordinates[1]
-
         p.translateX = coordinates[0]
         p.translateY = coordinates[1]
 
@@ -384,10 +399,26 @@ class GameFrame : Application() {
             if (gameInPrgoress){
                 pauseButton.text = "Continue Game"
                 gameInPrgoress = false
+
+                //timeInPaused += System.nanoTime() - pauseStartTime
+                timeElapsed += System.nanoTime() - startTime
             }
             else{
                 pauseButton.text = "Pause Game"
                 gameInPrgoress = true
+
+                //pauseStartTime = 0L
+                timeInPaused += System.nanoTime() - pauseStartTime
+                startTime = 0L
+
+                /*
+                startTime = System.nanoTime()
+                pauseStartTime = 0L
+                startTime -= timeInPaused
+                timeInPaused = 0L
+                 */
+                //startTime = System.nanoTime()
+                //pauseStartTime = 0L
             }
         }
         val newGameButton = Button("New Game")
@@ -439,10 +470,6 @@ class GameFrame : Application() {
         transition.toX = field.layoutX + (field.image.width - (piece?.image?.width ?: 0.0)) / 2.0
         transition.toY = field.layoutY + (field.image.height - (piece?.image?.height ?: 0.0)) / 2.0
         transition.play()
-    }
-    private fun getFieldlocation(field: Field, piece: Piece?) : Array<Double>{
-        return arrayOf(field.layoutX + (field.image.width - (piece?.image?.width ?: 0.0)) / 2.0,
-            field.layoutY + (field.image.height - (piece?.image?.height ?: 0.0)) / 2.0)
     }
 
     private fun selOrUnselPiece(piece: Piece?, addEff:Boolean){
@@ -596,15 +623,7 @@ class GameFrame : Application() {
                     f.pieceStored = previouslySelectedPiece
                     previouslySelectedPiece?.parentField?.pieceStored = null
                     previouslySelectedPiece?.parentField = f
-
-
-
                     placePieceOnField(f, previouslySelectedPiece)
-                    //pieceNewLocations = getFieldlocation(f, previouslySelectedPiece)
-
-
-
-
                     selOrUnselPiece(previouslySelectedPiece, false)
 
                     players[currentPlayerTurn].takenSteps += 1
@@ -733,81 +752,6 @@ class GameFrame : Application() {
             "pieces" -> playerStatTexts[playerIdx][type]?.text = "Number of Pieces: $newValue"
             "steps" -> playerStatTexts[playerIdx][type]?.text = "Steps taken: $newValue"
             "mills" -> playerStatTexts[playerIdx][type]?.text = "Mills placed: $newValue"
-        }
-    }
-
-
-
-
-    //TODO ANIMÁCIÓ
-    var piecePosX = 0.0
-    var piecePosY = 0.0
-    private fun animatePiece(currentNanoTime: Long){
-        // clear canvas
-        graphicsContext.clearRect(0.0, 0.0, WIDTH_GAME.toDouble(), HEIGHT.toDouble())
-        // draw background
-        graphicsContext.drawImage(backgroundImage, 0.0, 0.0)
-
-        val op = arrayOf((if (previouslySelectedPiece?.layoutX ?: 0.0 <= pieceNewLocations[0]) 1 else -1),
-            (if (previouslySelectedPiece?.layoutY ?: 0.0 <= pieceNewLocations[1]) 1 else -1))
-
-        //var piecePos: Double? = 0.0
-
-        /*if (previouslySelectedPiece?.layoutX ?: 0.0 <= pieceNewLocations[0]){
-            piecePos = previouslySelectedPiece?.layoutX?.plus(0.001 * op[0])
-        }*/
-
-        //piecePos?.plus(1.0)
-        updatePiecePosition(op)
-
-        /*if (piecePos != null) {
-            graphicsContext.drawImage(whitePiecePic, piecePos, 0.0)
-        }*/
-        graphicsContext.drawImage(whitePiecePic, piecePosX, piecePosY)
-    }
-    private fun updatePiecePosition(op: Array<Int>) {
-        piecePosX += op[0]
-        piecePosY += op[1]
-    }
-
-    private fun tickAndRender(currentNanoTime: Long) {
-        // the time elapsed since the last frame, in nanoseconds
-        // can be used for physics calculation, etc
-        val elapsedNanos = currentNanoTime - lastFrameTime
-        lastFrameTime = currentNanoTime
-
-        // clear canvas
-        graphicsContext.clearRect(0.0, 0.0, WIDTH_GAME.toDouble(), HEIGHT.toDouble())
-        // draw background
-        graphicsContext.drawImage(backgroundImage, 0.0, 0.0)
-
-        // perform world updates
-        updateSunPosition()
-
-        // draw sun
-        //graphicsContext.drawImage(sun, sunX.toDouble(), sunY.toDouble())
-
-
-        // display crude fps counter
-        val elapsedMs = elapsedNanos / 1_000_000
-        if (elapsedMs != 0L) {
-            graphicsContext.fill = Color.WHITE
-            graphicsContext.fillText("${1000 / elapsedMs} fps", 10.0, 10.0)
-        }
-    }
-
-    private fun updateSunPosition() {
-        if (currentlyActiveKeys.contains(KeyCode.LEFT)) {
-            sunX--
-        }
-        if (currentlyActiveKeys.contains(KeyCode.RIGHT)) {
-            sunX++
-        }
-        if (currentlyActiveKeys.contains(KeyCode.UP)) {
-            sunY--
-        }
-        if (currentlyActiveKeys.contains(KeyCode.DOWN)) {
-            sunY++
         }
     }
 }
