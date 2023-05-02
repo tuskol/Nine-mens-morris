@@ -1,6 +1,5 @@
 package frames
 
-import com.example.getResource
 import elements.Field
 import elements.Piece
 import elements.Player
@@ -27,6 +26,7 @@ import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 import javafx.stage.Stage
 import javafx.util.Duration
+import utils.getResource
 
 //TODO: Az minta dolgokat kiszedni (mint a nap, meg a többi)
 //TODO: Értelmes utasítások leírása
@@ -103,32 +103,6 @@ class GameFrame : Application() {
     // Main loop
     object : AnimationTimer() {
         override fun handle(currentNanoTime: Long) {
-            /*
-            if (gameInPrgoress){
-                if (startTime == 0L) {
-                    startTime = currentNanoTime
-                }
-                val elapsedTime = (currentNanoTime - startTime - timeElapsed) / 1_000_000_000.0
-                val elapsedMinutes = elapsedTime / 60
-                val elapsedSeconds = elapsedTime % 60
-                timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
-            }
-            else {
-                //TODO: az időmérő bajos ha megállítom
-
-                if (pauseStartTime == 0L){
-                    pauseStartTime = currentNanoTime
-                    timeElapsed = currentNanoTime - startTime
-                }
-
-                /*if (pauseStartTime == 0L) {
-                    pauseStartTime = currentNanoTime
-                }
-                timeInPaused += currentNanoTime - pauseStartTime
-                pauseStartTime = 0L // Reset pauseStartTime when game is resumed
-                */
-            }
-             */
             if (gameInPrgoress) {
                 if (startTime == 0L) {
                     startTime = currentNanoTime
@@ -137,34 +111,16 @@ class GameFrame : Application() {
                 val elapsedMinutes = elapsedTime / 60
                 val elapsedSeconds = elapsedTime % 60
                 timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
-                pauseStartTime = 0L // reset pauseStartTime when game is running
+                pauseStartTime = 0L
             } else {
                 if (pauseStartTime == 0L) {
                     pauseStartTime = currentNanoTime
                 }
-                //timeInPaused = currentNanoTime - pauseStartTime
-                //timeInPaused = currentNanoTime - pauseStartTime
-                //val elapsedPausedTime = timeInPaused / 1_000_000_000.0
-                //val pausedMinutes = elapsedPausedTime / 60
-                //val pausedSeconds = elapsedPausedTime % 60
-                //timePassedLabel.text = "Paused time: " + String.format("%02.0f:%02.0f", pausedMinutes, pausedSeconds)
-
-        }
+            }
         }
     }.start()
     mainStage.show()
 }
-
-
-    /*
-    private fun prepareActionHandlers() {
-        mainScene.onKeyPressed = EventHandler { event ->
-            currentlyActiveKeys.add(event.code)
-        }
-        mainScene.onKeyReleased = EventHandler { event ->
-            currentlyActiveKeys.remove(event.code)
-        }
-    }*/
 
     private fun loadBoard(parent: Group) {
         // prefixed with / to indicate that the files are
@@ -344,28 +300,28 @@ class GameFrame : Application() {
         uiMainVBox.minWidth = WIDTH_UI.toDouble()
         uiMainVBox.alignment = Pos.CENTER
 
-        val uiTitleLabel = initLabel("Nine Men's Morris", 25.0, "Arial", FontWeight.BOLD)
+        val uiTitleLabel = utils.initLabel("Nine Men's Morris", 25.0, "Arial", FontWeight.BOLD)
 
-        val playersHeaderHBox = initHBox(minHeight=50.0)
+        val playersHeaderHBox = utils.initHBox((WIDTH_UI/4).toDouble(), 50.0, WIDTH_UI.toDouble())
         playersHeaderHBox.style = "-fx-background-color:#D3D3D3"
-        val playerWhiteText = initLabel("WHITE", 15.0, fontWeight=FontWeight.BOLD)
-        val playerBlackText = initLabel("BLACK", 15.0, fontWeight=FontWeight.BOLD)
+        val playerWhiteText = utils.initLabel("WHITE", 15.0, fontWeight=FontWeight.BOLD)
+        val playerBlackText = utils.initLabel("BLACK", 15.0, fontWeight=FontWeight.BOLD)
         playerWhiteText.textFill = Color.WHITE
         playerBlackText.textFill = Color.BLACK
 
-        val playersNameHBox = initHBox(minHeight=30.0)
-        playerNameText.add(initLabel(players[0].name, 12.0, fontWeight=FontWeight.BOLD))
-        playerNameText.add(initLabel(players[1].name, 12.0))
+        val playersNameHBox = utils.initHBox((WIDTH_UI/4).toDouble(), 30.0, WIDTH_UI.toDouble())
+        playerNameText.add(utils.initLabel(players[0].name, 12.0, fontWeight=FontWeight.BOLD))
+        playerNameText.add(utils.initLabel(players[1].name, 12.0))
 
         val line = Line(0.0, 0.0, 205.0, 0.0)
         line.strokeWidth = 2.5
         line.stroke = Color.GRAY
 
-        val playersStatsHBox = initHBox(spacing=20.0, minHeight=30.0)
+        val playersStatsHBox = utils.initHBox(spacing=20.0, minHeight=30.0, minWidth=WIDTH_UI.toDouble())
 
         val playersPropVBox = mutableListOf<VBox>()
-        val playersSVBox1 = initVBox(10.0)
-        val playersSVBox2 = initVBox(10.0)
+        val playersSVBox1 = utils.initVBox(10.0,WIDTH_UI / 4.0, 30.0)
+        val playersSVBox2 = utils.initVBox(10.0,WIDTH_UI / 4.0, 30.0)
         playersPropVBox.add(playersSVBox1)
         playersPropVBox.add(playersSVBox2)
 
@@ -373,15 +329,14 @@ class GameFrame : Application() {
             val newPlayerStat = mutableMapOf<String, Label>()
             playerStatTexts.add(newPlayerStat)
 
-            playerStatTexts[i]["pieces"] = initLabel("Number of Pieces: 9", 12.0)
-            playerStatTexts[i]["steps"] = initLabel("Steps taken: 0", 12.0)
-            playerStatTexts[i]["mills"] = initLabel("Mills placed: 0", 12.0)
+            playerStatTexts[i]["pieces"] = utils.initLabel("Number of Pieces: 9", 12.0)
+            playerStatTexts[i]["steps"] = utils.initLabel("Steps taken: 0", 12.0)
+            playerStatTexts[i]["mills"] = utils.initLabel("Mills placed: 0", 12.0)
 
             for (pst in playerStatTexts[i]) {
                 playersPropVBox[i].children.addAll(pst.value)
             }
         }
-
         instructionTextArea = TextArea("Instruction panel\n" +
                                 "Here comes all the instructions")
         instructionTextArea.maxWidth = WIDTH_UI.toDouble() - 10.0
@@ -390,9 +345,7 @@ class GameFrame : Application() {
         //instructionTextArea.style = "-fx-control-inner-background: #D3D3D3;"
         //instructionTextArea.alignment = Pos.CENTER
 
-        timePassedLabel = initLabel("Elapsed time: ..")
-
-
+        timePassedLabel = utils.initLabel("Elapsed time: ..")
 
         pauseButton = Button("Pause Game")
         pauseButton.setOnAction {
@@ -400,25 +353,14 @@ class GameFrame : Application() {
                 pauseButton.text = "Continue Game"
                 gameInPrgoress = false
 
-                //timeInPaused += System.nanoTime() - pauseStartTime
                 timeElapsed += System.nanoTime() - startTime
             }
             else{
                 pauseButton.text = "Pause Game"
                 gameInPrgoress = true
 
-                //pauseStartTime = 0L
                 timeInPaused += System.nanoTime() - pauseStartTime
                 startTime = 0L
-
-                /*
-                startTime = System.nanoTime()
-                pauseStartTime = 0L
-                startTime -= timeInPaused
-                timeInPaused = 0L
-                 */
-                //startTime = System.nanoTime()
-                //pauseStartTime = 0L
             }
         }
         val newGameButton = Button("New Game")
@@ -434,34 +376,6 @@ class GameFrame : Application() {
         playersStatsHBox.children.addAll(playersPropVBox)
 
         parent.children.add(uiMainVBox)
-    }
-
-    private fun initLabel(text:String,
-                           size:Double=15.0,
-                           fontFamily:String="System",
-                           fontWeight:FontWeight=FontWeight.NORMAL) : Label {
-        val label = Label(text)
-        label.font = Font.font(fontFamily, fontWeight, size)
-        return label
-    }
-    private fun initHBox(spacing: Double = (WIDTH_UI/4).toDouble(),
-                         minHeight: Double = 30.0): HBox{
-        val nHBox = HBox(spacing)
-        HBox.setHgrow(nHBox, Priority.ALWAYS)
-        nHBox.minWidth = WIDTH_UI.toDouble()
-        nHBox.minHeight = minHeight
-        nHBox.alignment = Pos.CENTER
-        return nHBox
-    }
-    private fun initVBox(spacing: Double = (WIDTH_UI/3).toDouble(),
-                         minWidth: Double = WIDTH_UI / 4.0,
-                         minHeight: Double = 30.0): VBox{
-        val nVBox = VBox(spacing)
-        VBox.setVgrow(nVBox, Priority.ALWAYS)
-        nVBox.minWidth = minWidth
-        nVBox.minHeight = minHeight
-        nVBox.alignment = Pos.CENTER
-        return nVBox
     }
 
     private fun placePieceOnField(field: Field, piece: Piece?){

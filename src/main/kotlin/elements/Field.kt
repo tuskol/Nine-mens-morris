@@ -1,6 +1,6 @@
 package elements
 
-import com.example.getResource
+import utils.getResource
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 
