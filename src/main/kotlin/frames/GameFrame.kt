@@ -5,6 +5,7 @@ import elements.Field
 import elements.Piece
 import elements.Player
 import javafx.animation.AnimationTimer
+import javafx.animation.TranslateTransition
 import javafx.application.Application
 import javafx.event.EventHandler
 import javafx.geometry.Pos
@@ -26,6 +27,7 @@ import javafx.scene.shape.Line
 import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 import javafx.stage.Stage
+import javafx.util.Duration
 
 //TODO: Az minta dolgokat kiszedni (mint a nap, meg a többi)
 //TODO: Értelmes utasítások leírása
@@ -110,7 +112,7 @@ class GameFrame : Application() {
     object : AnimationTimer() {
         override fun handle(currentNanoTime: Long) {
             //tickAndRender(currentNanoTime)
-            animatePiece(currentNanoTime)
+            //animatePiece(currentNanoTime)
 
 
             if (gameInPrgoress){
@@ -312,8 +314,11 @@ class GameFrame : Application() {
         p.setOnMouseClicked {
             clickOnPiece(p)
         }
-        p.layoutX = coordinates[0]
-        p.layoutY = coordinates[1]
+        //p.layoutX = coordinates[0]
+        //p.layoutY = coordinates[1]
+
+        p.translateX = coordinates[0]
+        p.translateY = coordinates[1]
 
         return p
     }
@@ -429,8 +434,11 @@ class GameFrame : Application() {
     }
 
     private fun placePieceOnField(field: Field, piece: Piece?){
-        piece?.layoutX = field.layoutX + (field.image.width - (piece?.image?.width ?: 0.0)) / 2.0
-        piece?.layoutY = field.layoutY + (field.image.height - (piece?.image?.height ?: 0.0)) / 2.0
+        //Animated transition to the new fields
+        val transition = TranslateTransition(Duration.seconds(1.0), piece)
+        transition.toX = field.layoutX + (field.image.width - (piece?.image?.width ?: 0.0)) / 2.0
+        transition.toY = field.layoutY + (field.image.height - (piece?.image?.height ?: 0.0)) / 2.0
+        transition.play()
     }
     private fun getFieldlocation(field: Field, piece: Piece?) : Array<Double>{
         return arrayOf(field.layoutX + (field.image.width - (piece?.image?.width ?: 0.0)) / 2.0,
@@ -588,8 +596,15 @@ class GameFrame : Application() {
                     f.pieceStored = previouslySelectedPiece
                     previouslySelectedPiece?.parentField?.pieceStored = null
                     previouslySelectedPiece?.parentField = f
-                    //placePieceOnField(f, previouslySelectedPiece)
-                    pieceNewLocations = getFieldlocation(f, previouslySelectedPiece)
+
+
+
+                    placePieceOnField(f, previouslySelectedPiece)
+                    //pieceNewLocations = getFieldlocation(f, previouslySelectedPiece)
+
+
+
+
                     selOrUnselPiece(previouslySelectedPiece, false)
 
                     players[currentPlayerTurn].takenSteps += 1
