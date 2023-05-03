@@ -15,9 +15,7 @@ import javafx.scene.control.*
 import javafx.scene.effect.DropShadow
 import javafx.scene.image.Image
 import javafx.scene.input.KeyCode
-import javafx.scene.layout.HBox
-import javafx.scene.layout.Priority
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.shape.Line
 import javafx.scene.text.Font
@@ -27,7 +25,6 @@ import javafx.util.Duration
 import utils.createHeaderLabel
 import utils.getResource
 
-//TODO: Értelmes utasítások leírása
 class GameFrame(private val players: MutableList<Player>) : Application() {
     companion object {
         private const val WIDTH_GAME = 600
@@ -328,13 +325,18 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
                 playersPropVBox[i].children.addAll(pst.value)
             }
         }
-        instructionTextArea = TextArea("Instruction panel\n" +
-                                "Here comes all the instructions")
+        instructionTextArea = TextArea("Welcome to Nine Men's Mill\n" +
+                                            "In this phase you have to place all your pieces to the board\n" +
+                                            "${players[currentPlayerTurn].name} - you start\n" +
+                                            "Please, place a piece on a field")
         instructionTextArea.maxWidth = WIDTH_UI.toDouble() - 10.0
         instructionTextArea.isEditable = false
         instructionTextArea.isWrapText = true
+        instructionTextArea.background = Background(BackgroundFill(Color.TRANSPARENT, null, null))
         //instructionTextArea.style = "-fx-control-inner-background: #D3D3D3;"
         //instructionTextArea.alignment = Pos.CENTER
+        //instructionTextArea.setStyle("-fx-text-alignment: center;")
+
 
         timePassedLabel = utils.initLabel("Elapsed time: ..")
 
@@ -371,7 +373,7 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
                 val newGameFrame = NewGameFrame()
                 newGameFrame.start(newGameStage)
                 //Closing the starter frame
-                primaryStage?.close()
+                primaryStage.close()
             }
         }
 
@@ -484,7 +486,9 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
                         selOrUnselPiece(p, true)
                         addOrDelEffectOnField(p.parentField, true)
 
-                        setInstructionText("Figura kiválasztva, rakd le valahova")
+                        setInstructionText("You have selected a piece\n" +
+                                            "Please, place it on a free field\n\n" +
+                                            "The free fields are highlighted with green color")
                     }
                     else if (!phase1Placing) {
                         addOrDelEffectOnField(previouslySelectedPiece?.parentField, false)
@@ -492,15 +496,25 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
                         selOrUnselPiece(p, true)
                         addOrDelEffectOnField(p.parentField, true)
 
-                        setInstructionText("Figura kiválasztva, rakd le valahova")
+                        val hintWhereText = if (!players[currentPlayerTurn].canFly) "You can place this piece on an adjacent field"
+                                            else "You are in a state where you can \"fly\", which means you can place the piece anywhere"
+                        setInstructionText("You have selected a piece\n" +
+                                           "Please, move this piece to another field\n\n" +
+                                            hintWhereText + "\n"+
+                                            "The fields where you can move the piece are highlighted with green color")
                     }
                     else{
-                        setInstructionText("Ezt már leraktad, mit csinálsz?!")
+                        setInstructionText("You have already placed this piece\n"+
+                                            "In this phase you can't select this one\n"+
+                                            "Please select another piece, that you have not placed yet")
                     }
                 }
                 else{
                     selOrUnselPiece(p, false)
                     addOrDelEffectOnField(p.parentField, false)
+
+                    setInstructionText("You have unselected the piece.\n"+
+                                        "Please, select another piece to continue")
                 }
             }
             //Checks the other player in the Removing Phase
@@ -520,11 +534,18 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
                         updatePlayerStat("pieces", players[getOtherPlayer()].piecesList.size, getOtherPlayer())
 
                         changeRemovingPhase(false)
+
+                        val hintText = "You have removed a piece from ${players[getOtherPlayer()].name}\n---\n" +
+                                        "${players[getOtherPlayer()].name} - It's your turn now\n"
+                        val hintPlaceText = if (phase1Placing) "Please, place a piece on a field"
+                                            else "Please, move a piece to another field"
+                        setInstructionText(hintText + hintPlaceText)
+
                         changePlayerTurn()
-                        setInstructionText("meg volt a kukázás te jössz sry")
                         if(players[currentPlayerTurn].piecesList.size == 3){
                             players[currentPlayerTurn].canFly = true
-                            setInstructionText("Mostmár ugrálhatsz te szerencsétlen xddx")
+                            val hintTheyFlyNow = "\nYou have 3 pieces left. Now you enter the state of \"flying\", which means now you can place the remaining pieces on any fields" //just a tros reference :)
+                            setInstructionText(hintText + hintPlaceText + hintTheyFlyNow)
                         }
                         checkGameEnded()
                     }
@@ -532,9 +553,26 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
                     gameInProgress = false
                     transition.play()
                 }
+                else{
+                    val hintPiecePlace = if (p.parentField == null) "This piece is not placed yet!"
+                                        else "This piece is in a mill!"
+                    setInstructionText(hintPiecePlace + "\n" +
+                                        "You can't remove this one\n" +
+                                        "Please, select another piece from ${players[getOtherPlayer()].name}")
+                }
+            }
+            //Checks the player is trying to select his/her own pieces in the Removing Phase
+            else if(p.getColor == players[currentPlayerTurn].color && phaseRemoving){
+                /*setInstructionText("This is ${players[getOtherPlayer()].name}'s piece.\n" +
+                        "You can't select this one.\n" +
+                        "Please, select one from your own pieces")*/
+                setInstructionText("You can't remove your own pieces!\n" +
+                                    "Please, select a piece from ${players[getOtherPlayer()].name}")
             }
             else {
-                setInstructionText("NONO!")
+                setInstructionText("This is ${players[getOtherPlayer()].name}'s piece.\n" +
+                                    "You can't select this one.\n" +
+                                    "Please, select one from your own pieces")
             }
         }
     }
@@ -557,7 +595,12 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
 
                     players[currentPlayerTurn].takenSteps += 1
                     updatePlayerStat("steps", players[currentPlayerTurn].takenSteps, currentPlayerTurn)
-                    setInstructionText("Figura lerakva, MÁSIK játékos jön")
+
+                    val hintText = "You placed the selected piece on this field\n---\n" +
+                                    "${players[getOtherPlayer()].name} - It's your turn now\n"
+                    val hintPlaceText = if (phase1Placing) "Please, place a piece on a field"
+                                        else "Please, move a piece to another field"
+                    setInstructionText(hintText + hintPlaceText)
 
                     //In phase 1 we need to count the second player's placed pieces
                     if (phase1Placing && currentPlayerTurn == 1) {
@@ -566,28 +609,40 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
                         if (countPiecesOnField >= 9) {
                             phase1Placing = false
 
-                            setInstructionText("Nincs több pakolás ááááá")
+                            setInstructionText("You have placed all your pieces on the board.\n" +
+                                                "A new phase starts now.\n" +
+                                                "In this phase you have to move your placed pieces and form mills\n"+
+                                                "${players[currentPlayerTurn].name} - it's your turn\n"+
+                                                "Please, move a piece to an adjacent field")
                         }
                     }
                     //If there's a mill, the current player can remove a piece from the other player
                     if (checkMill(f)){
                         players[currentPlayerTurn].millsPlaced += 1
                         updatePlayerStat("mills", players[currentPlayerTurn].millsPlaced, currentPlayerTurn)
-                        setInstructionText("MALOM VAN GECOO")
+                        setInstructionText("YOU HAVE FORMED A MILL!\n" +
+                                            "${players[currentPlayerTurn].name} - you have to remove a piece from ${players[getOtherPlayer()].name}\n" +
+                                            "(You can only remove pieces that are not in a mill)\n\n" +
+                                            "The removable pieces are highlighted with red color")
+
                         changeRemovingPhase(true)
                     }
-                    //If there's no new mill, the game continuous
+                    //If there's no new mill, the game continues
                     else{
                         changePlayerTurn()
                         checkGameEnded()
                     }
                 }
                 else {
-                    setInstructionText("itt már van HE")
+                    setInstructionText("You can't place your piece here!\n"+
+                                        "There's already a piece on this field\n"+
+                                        "Please, select another field")
                 }
             }
             else {
-                setInstructionText("Nem szomszédos, mit csinálsz xdd")
+                setInstructionText("You can't place your piece here!\n" +
+                                    "This field is not adjacent to the that field where your selected piece is placed\n"+
+                                    "Please, select another field")
             }
         }
     }
@@ -643,7 +698,12 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
         //If there are no removable pieces, then the Removing Phase should be ended
         if(removablePieces.size == 0) {
             phaseRemoving = false
-            setInstructionText("Talán legközlebb ahahhahah")
+            val hintText = "YOU HAVE FORMED A MILL!\n" +
+                            "But there are no removable pieces, so you can't remove from ${players[getOtherPlayer()].name} now\n---\n" +
+                            "${players[currentPlayerTurn].name} - it's your turn\n"
+            val hintPlaceText = if (phase1Placing) "Please, place a piece on a field"
+                                else "Please, move a piece to another field"
+            setInstructionText(hintText + hintPlaceText)
             changePlayerTurn()
         }
         //Clears the list of the removable list at the end of the phase
@@ -654,27 +714,37 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
             //The game ends when one player has less than 3 pieces
             if (player.piecesList.size < 3){
                 gameInProgress = false
-                setInstructionText("VÉGEEEE (mert nincs több bábu): " + player.name)
+                changePlayerTurn()
+                val winnerIdx = if (players.indexOf(player) == 0) 1 else 0
+                showGameOverMessage("${player.name} has less then 3 pieces left.", winnerIdx)
                 pauseButton.isDisable = true
             }
             //Or if a player's all pieces are surrounded, so that player can't move
-            var playerStucked = true
+            var playerStuck = true
             for (piece in player.piecesList){
                 for (fsl in fields){
                     for (f in fsl){
                         if (isStepCorrect(piece.parentField, f, players.indexOf(player))){
-                            playerStucked = false
+                            playerStuck = false
                             break
                         }
                     }
                 }
             }
-            if (playerStucked){
+            if (playerStuck){
                 gameInProgress = false
-                setInstructionText("VÉGEEEE (mert nem tudsz lépni): " + player.name)
+                changePlayerTurn()
+                val winnerIdx = if (players.indexOf(player) == 0) 1 else 0
+                showGameOverMessage("${player.name} can't move the pieces, because they are all surrounded.", winnerIdx)
                 pauseButton.isDisable = true
             }
         }
+    }
+    private fun showGameOverMessage(reason: String, winnerIdx: Int){
+        setInstructionText("THE GAME IS OVER!\n"+
+                reason + "\n\n" +
+                "The Winner is: ${players[winnerIdx].name}\n"+
+                "Congratulation!")
     }
     private fun updatePlayerStat(type:String, newValue: Int, playerIdx: Int){
         when(type){
