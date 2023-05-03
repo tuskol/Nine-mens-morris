@@ -42,12 +42,12 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
     private val playerNameText = mutableListOf<Label>()
     private val playerStatTexts: MutableList<MutableMap<String, Label>> = mutableListOf()
     private lateinit var pauseButton: Button
+    private var lastInstructionText: String = ""
 
     //Game Elements
     private var gameInProgress: Boolean = true
     private val fields: MutableList<MutableList<Field>> = mutableListOf()
     private var previouslySelectedPiece: Piece? = null
-    //private val players = mutableListOf<Player>()
     private var currentPlayerTurn = 0 //Starer Player id
     private var phase1Placing: Boolean = true
     private var countPiecesOnField = 0
@@ -345,12 +345,17 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
             if (gameInProgress){
                 pauseButton.text = "Continue Game"
                 gameInProgress = false
+                lastInstructionText = instructionTextArea.text
+                setInstructionText("The Game is Paused\n"+
+                                    "You can't do any actions on the board until you return to the game")
 
                 timeElapsed += System.nanoTime() - startTime
             }
             else{
                 pauseButton.text = "Pause Game"
                 gameInProgress = true
+                setInstructionText("The Game Continues!\n$lastInstructionText")
+                lastInstructionText = ""
 
                 timeInPaused += System.nanoTime() - pauseStartTime
                 startTime = 0L
@@ -612,7 +617,7 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
                             setInstructionText("You have placed all your pieces on the board.\n" +
                                                 "A new phase starts now.\n" +
                                                 "In this phase you have to move your placed pieces and form mills\n"+
-                                                "${players[currentPlayerTurn].name} - it's your turn\n"+
+                                                "${players[getOtherPlayer()].name} - it's your turn\n"+
                                                 "Please, move a piece to an adjacent field")
                         }
                     }
