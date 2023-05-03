@@ -27,7 +27,6 @@ import javafx.util.Duration
 import utils.createHeaderLabel
 import utils.getResource
 
-//TODO: Az minta dolgokat kiszedni (mint a nap, meg a többi)
 //TODO: Értelmes utasítások leírása
 class GameFrame(private val players: MutableList<Player>) : Application() {
     companion object {
@@ -509,26 +508,29 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
                 //Checks that the selected piece is removable
                 if (p in removablePieces){
                     val transition = TranslateTransition(Duration.seconds(1.0), p)
-                    transition.toX = 10.0
-                    transition.toY = (if (currentPlayerTurn == 0) 10.0 else (HEIGHT-10.0-p.image.height))
+                    transition.toX = 15.0
+                    transition.toY = (if (currentPlayerTurn == 0) 15.0 else (HEIGHT-10.0-p.image.height))
                     transition.setOnFinished {
+                        gameInProgress = true
                         p.parentField?.pieceStored = null
                         p.parentField = null
                         p.isVisible = false
                         players[getOtherPlayer()].piecesList.remove(p)
+
+                        updatePlayerStat("pieces", players[getOtherPlayer()].piecesList.size, getOtherPlayer())
+
+                        changeRemovingPhase(false)
+                        changePlayerTurn()
+                        setInstructionText("meg volt a kukázás te jössz sry")
+                        if(players[currentPlayerTurn].piecesList.size == 3){
+                            players[currentPlayerTurn].canFly = true
+                            setInstructionText("Mostmár ugrálhatsz te szerencsétlen xddx")
+                        }
+                        checkGameEnded()
                     }
+                    //Temporarily stops the gameplay to prevent the player to remove more pieces during the animation
+                    gameInProgress = false
                     transition.play()
-
-                    updatePlayerStat("pieces", players[getOtherPlayer()].piecesList.size, getOtherPlayer())
-
-                    changeRemovingPhase(false)
-                    changePlayerTurn()
-                    setInstructionText("meg volt a kukázás te jössz sry")
-                    if(players[currentPlayerTurn].piecesList.size == 3){
-                        players[currentPlayerTurn].canFly = true
-                        setInstructionText("Mostmár ugrálhatsz te szerencsétlen xddx")
-                    }
-                    checkGameEnded()
                 }
             }
             else {
