@@ -13,6 +13,8 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
+import javafx.scene.text.Font
+import javafx.scene.text.FontPosture
 import javafx.scene.text.FontWeight
 import javafx.stage.Stage
 import utils.createHeaderLabel
@@ -20,7 +22,7 @@ import utils.createHeaderLabel
 class NewGameFrame: Application() {
     companion object {
         private const val WIDTH = 300
-        private const val HEIGHT = 270
+        private const val HEIGHT = 300
     }
     private lateinit var scene: Scene
     override fun start(primaryStage: Stage?) {
@@ -74,7 +76,7 @@ class NewGameFrame: Application() {
         val starterPlayerComboBox = ComboBox(players)
         starterPlayerComboBox.selectionModel.selectFirst()
 
-        val startGameButton = Button("New Game")
+        val startGameButton = Button("Start Game")
         startGameButton.setOnAction {
             //Get players' data
             val pl1 = if (starterPlayerComboBox.selectionModel.selectedIndex == 0)
@@ -90,8 +92,12 @@ class NewGameFrame: Application() {
             primaryStage?.close()
         }
 
+        val noAIlabel = utils.initLabel("There are no AI opponents implemented in this version\n" +
+                                        "The goal was to make a functioning game")
+        noAIlabel.font = Font.font("Arial", FontPosture.ITALIC, 10.0)
+
         uiMainVBox.children.addAll(uiTitleLabel, uiLabel1, playersHeaderHBox, playersNameHBox,
-            playerStarterSelectHBox, startGameButton)
+            playerStarterSelectHBox, noAIlabel,startGameButton)
         playersHeaderHBox.children.addAll(playerWhiteText, playerBlackText)
         playersNameHBox.children.addAll(playerWhiteNameTextArea, playerBlackNameTextArea)
         playerStarterSelectHBox.children.addAll(uiLabel2, starterPlayerComboBox)

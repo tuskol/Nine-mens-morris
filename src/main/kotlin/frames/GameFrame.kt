@@ -319,7 +319,7 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
 
             playerStatTexts[i]["pieces"] = utils.initLabel("Number of Pieces: 9", 12.0)
             playerStatTexts[i]["steps"] = utils.initLabel("Steps taken: 0", 12.0)
-            playerStatTexts[i]["mills"] = utils.initLabel("Mills placed: 0", 12.0)
+            playerStatTexts[i]["mills"] = utils.initLabel("Mills formed: 0", 12.0)
 
             for (pst in playerStatTexts[i]) {
                 playersPropVBox[i].children.addAll(pst.value)
@@ -750,7 +750,7 @@ class GameFrame(private val players: MutableList<Player>) : Application() {
         when(type){
             "pieces" -> playerStatTexts[playerIdx][type]?.text = "Number of Pieces: $newValue"
             "steps" -> playerStatTexts[playerIdx][type]?.text = "Steps taken: $newValue"
-            "mills" -> playerStatTexts[playerIdx][type]?.text = "Mills placed: $newValue"
+            "mills" -> playerStatTexts[playerIdx][type]?.text = "Mills formed: $newValue"
         }
     }
 }
