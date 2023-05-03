@@ -11,9 +11,7 @@ import javafx.scene.Group
 import javafx.scene.Scene
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
-import javafx.scene.control.Button
-import javafx.scene.control.Label
-import javafx.scene.control.TextArea
+import javafx.scene.control.*
 import javafx.scene.effect.DropShadow
 import javafx.scene.image.Image
 import javafx.scene.input.KeyCode
@@ -26,12 +24,12 @@ import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 import javafx.stage.Stage
 import javafx.util.Duration
+import utils.createHeaderLabel
 import utils.getResource
 
 //TODO: Az minta dolgokat kiszedni (mint a nap, meg a többi)
 //TODO: Értelmes utasítások leírása
-class GameFrame : Application() {
-
+class GameFrame(private val players: MutableList<Player>) : Application() {
     companion object {
         private const val WIDTH_GAME = 600
         private const val WIDTH_UI = 256
@@ -50,10 +48,10 @@ class GameFrame : Application() {
     private lateinit var pauseButton: Button
 
     //Game Elements
-    private var gameInPrgoress: Boolean = true
+    private var gameInProgress: Boolean = true
     private val fields: MutableList<MutableList<Field>> = mutableListOf()
     private var previouslySelectedPiece: Piece? = null
-    private val players = mutableListOf<Player>()
+    //private val players = mutableListOf<Player>()
     private var currentPlayerTurn = 0 //Starer Player id
     private var phase1Placing: Boolean = true
     private var countPiecesOnField = 0
@@ -75,52 +73,47 @@ class GameFrame : Application() {
     private var timeElapsed = 0L
 
     override fun start(mainStage: Stage) {
-    mainStage.title = "Kotlin HW - Nine Men's Morris"
+        mainStage.title = "Kotlin HW - Nine Men's Morris"
 
-    val root = HBox()
-    val gameGroup = Group()
-    val uiGroup = Group()
+        val root = HBox()
+        val gameGroup = Group()
+        val uiGroup = Group()
 
-    mainScene = Scene(root, (WIDTH_GAME + WIDTH_UI).toDouble(), HEIGHT.toDouble() )
-    mainStage.isResizable = false
-    mainStage.scene = mainScene
+        mainScene = Scene(root, (WIDTH_GAME + WIDTH_UI).toDouble(), HEIGHT.toDouble() )
+        mainStage.isResizable = false
+        mainStage.scene = mainScene
 
-    root.children.addAll(gameGroup, uiGroup)
+        root.children.addAll(gameGroup, uiGroup)
 
-    val canvas = Canvas(WIDTH_GAME.toDouble(), HEIGHT.toDouble())
-    gameGroup.children.add(canvas)
+        val canvas = Canvas(WIDTH_GAME.toDouble(), HEIGHT.toDouble())
+        gameGroup.children.add(canvas)
 
-    //prepareActionHandlers()
+        graphicsContext = canvas.graphicsContext2D
 
-    graphicsContext = canvas.graphicsContext2D
+        loadBoard(gameGroup)
+        loadUI(uiGroup, mainStage)
 
-    players.add(Player(Color.WHITE, "Player White"))
-    players.add(Player(Color.BLACK, "Player Black"))
-
-    loadBoard(gameGroup)
-    loadUI(uiGroup)
-
-    // Main loop
-    object : AnimationTimer() {
-        override fun handle(currentNanoTime: Long) {
-            if (gameInPrgoress) {
-                if (startTime == 0L) {
-                    startTime = currentNanoTime
-                }
-                val elapsedTime = (currentNanoTime - startTime + timeElapsed) / 1_000_000_000.0
-                val elapsedMinutes = elapsedTime / 60
-                val elapsedSeconds = elapsedTime % 60
-                timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
-                pauseStartTime = 0L
-            } else {
-                if (pauseStartTime == 0L) {
-                    pauseStartTime = currentNanoTime
+        // Main loop
+        object : AnimationTimer() {
+            override fun handle(currentNanoTime: Long) {
+                if (gameInProgress) {
+                    if (startTime == 0L) {
+                        startTime = currentNanoTime
+                    }
+                    val elapsedTime = (currentNanoTime - startTime + timeElapsed) / 1_000_000_000.0
+                    val elapsedMinutes = elapsedTime / 60
+                    val elapsedSeconds = elapsedTime % 60
+                    timePassedLabel.text = "Elapsed time: " + String.format("%02.0f:%02.0f", elapsedMinutes, elapsedSeconds)
+                    pauseStartTime = 0L
+                } else {
+                    if (pauseStartTime == 0L) {
+                        pauseStartTime = currentNanoTime
+                    }
                 }
             }
-        }
-    }.start()
-    mainStage.show()
-}
+        }.start()
+        mainStage.show()
+    }
 
     private fun loadBoard(parent: Group) {
         // prefixed with / to indicate that the files are
@@ -294,7 +287,7 @@ class GameFrame : Application() {
         return p
     }
 
-    private fun loadUI(parent: Group){
+    private fun loadUI(parent: Group, primaryStage: Stage){
         val uiMainVBox = VBox(10.0)
         VBox.setVgrow(uiMainVBox, Priority.ALWAYS)
         uiMainVBox.minWidth = WIDTH_UI.toDouble()
@@ -302,14 +295,13 @@ class GameFrame : Application() {
 
         val uiTitleLabel = utils.initLabel("Nine Men's Morris", 25.0, "Arial", FontWeight.BOLD)
 
-        val playersHeaderHBox = utils.initHBox((WIDTH_UI/4).toDouble(), 50.0, WIDTH_UI.toDouble())
+        val playersHeaderHBox = utils.initHBox((WIDTH_UI/4).toDouble(), WIDTH_UI.toDouble(), 50.0)
         playersHeaderHBox.style = "-fx-background-color:#D3D3D3"
-        val playerWhiteText = utils.initLabel("WHITE", 15.0, fontWeight=FontWeight.BOLD)
-        val playerBlackText = utils.initLabel("BLACK", 15.0, fontWeight=FontWeight.BOLD)
-        playerWhiteText.textFill = Color.WHITE
-        playerBlackText.textFill = Color.BLACK
+        val playerHeaderTexts = mutableListOf<Label>()
+        playerHeaderTexts.add(createHeaderLabel(players[0].color))
+        playerHeaderTexts.add(createHeaderLabel(players[1].color))
 
-        val playersNameHBox = utils.initHBox((WIDTH_UI/4).toDouble(), 30.0, WIDTH_UI.toDouble())
+        val playersNameHBox = utils.initHBox((WIDTH_UI/4).toDouble(),  WIDTH_UI.toDouble(),30.0)
         playerNameText.add(utils.initLabel(players[0].name, 12.0, fontWeight=FontWeight.BOLD))
         playerNameText.add(utils.initLabel(players[1].name, 12.0))
 
@@ -349,15 +341,15 @@ class GameFrame : Application() {
 
         pauseButton = Button("Pause Game")
         pauseButton.setOnAction {
-            if (gameInPrgoress){
+            if (gameInProgress){
                 pauseButton.text = "Continue Game"
-                gameInPrgoress = false
+                gameInProgress = false
 
                 timeElapsed += System.nanoTime() - startTime
             }
             else{
                 pauseButton.text = "Pause Game"
-                gameInPrgoress = true
+                gameInProgress = true
 
                 timeInPaused += System.nanoTime() - pauseStartTime
                 startTime = 0L
@@ -365,13 +357,28 @@ class GameFrame : Application() {
         }
         val newGameButton = Button("New Game")
         newGameButton.setOnAction {
-            //TODO new game button
-        }
+            val confirmationDialog = Alert(Alert.AlertType.CONFIRMATION)
+            confirmationDialog.title = "Start a New Game"
+            confirmationDialog.headerText = "Are you sure you want to start a new game?"
+            confirmationDialog.contentText = "Your current game progress will be lost."
 
+            val okButton = ButtonType("Start New Game", ButtonBar.ButtonData.OK_DONE)
+            confirmationDialog.buttonTypes.setAll(okButton, ButtonType.CANCEL)
+
+            val result = confirmationDialog.showAndWait()
+            if (result.get() == okButton) {
+                //Starting the main game frame
+                val newGameStage = Stage()
+                val newGameFrame = NewGameFrame()
+                newGameFrame.start(newGameStage)
+                //Closing the starter frame
+                primaryStage?.close()
+            }
+        }
 
         uiMainVBox.children.addAll(uiTitleLabel, playersHeaderHBox, playersNameHBox, line,
             playersStatsHBox, instructionTextArea, timePassedLabel, pauseButton, newGameButton)
-        playersHeaderHBox.children.addAll(playerWhiteText, playerBlackText)
+        playersHeaderHBox.children.addAll(playerHeaderTexts)
         playersNameHBox.children.addAll(playerNameText)
         playersStatsHBox.children.addAll(playersPropVBox)
 
@@ -468,7 +475,7 @@ class GameFrame : Application() {
 
 
     private fun clickOnPiece(p: Piece){
-        if (gameInPrgoress) {
+        if (gameInProgress) {
             //Checks player of the selected piece
             if (p.getColor == players[currentPlayerTurn].color && !phaseRemoving){
                 //Checks if it's selected or unselected
@@ -501,10 +508,16 @@ class GameFrame : Application() {
             else if(p.getColor != players[currentPlayerTurn].color && phaseRemoving){
                 //Checks that the selected piece is removable
                 if (p in removablePieces){
-                    p.parentField?.pieceStored = null
-                    p.parentField = null
-                    p.isVisible = false
-                    players[getOtherPlayer()].piecesList.remove(p)
+                    val transition = TranslateTransition(Duration.seconds(1.0), p)
+                    transition.toX = 10.0
+                    transition.toY = (if (currentPlayerTurn == 0) 10.0 else (HEIGHT-10.0-p.image.height))
+                    transition.setOnFinished {
+                        p.parentField?.pieceStored = null
+                        p.parentField = null
+                        p.isVisible = false
+                        players[getOtherPlayer()].piecesList.remove(p)
+                    }
+                    transition.play()
 
                     updatePlayerStat("pieces", players[getOtherPlayer()].piecesList.size, getOtherPlayer())
 
@@ -638,7 +651,7 @@ class GameFrame : Application() {
         for (player in players){
             //The game ends when one player has less than 3 pieces
             if (player.piecesList.size < 3){
-                gameInPrgoress = false
+                gameInProgress = false
                 setInstructionText("VÉGEEEE (mert nincs több bábu): " + player.name)
                 pauseButton.isDisable = true
             }
@@ -655,7 +668,7 @@ class GameFrame : Application() {
                 }
             }
             if (playerStucked){
-                gameInPrgoress = false
+                gameInProgress = false
                 setInstructionText("VÉGEEEE (mert nem tudsz lépni): " + player.name)
                 pauseButton.isDisable = true
             }

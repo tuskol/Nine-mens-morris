@@ -1,5 +1,6 @@
 package frames
 
+import elements.Player
 import javafx.application.Application
 import javafx.collections.FXCollections
 import javafx.geometry.Pos
@@ -14,6 +15,7 @@ import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.text.FontWeight
 import javafx.stage.Stage
+import utils.createHeaderLabel
 
 class NewGameFrame: Application() {
     companion object {
@@ -37,13 +39,11 @@ class NewGameFrame: Application() {
             primaryStage.scene = scene
         }
         root.children.addAll(uiGroup)
-
-        loadUI(uiGroup)
-
+        loadUI(uiGroup, primaryStage)
         primaryStage?.show()
     }
 
-    private fun loadUI(parent: Group){
+    private fun loadUI(parent: Group, primaryStage: Stage?){
         val uiMainVBox = VBox(10.0)
         VBox.setVgrow(uiMainVBox, Priority.ALWAYS)
         uiMainVBox.minWidth = WIDTH.toDouble()
@@ -55,10 +55,8 @@ class NewGameFrame: Application() {
 
         val playersHeaderHBox = utils.initHBox((WIDTH/4).toDouble(), 50.0, 40.0)
         playersHeaderHBox.style = "-fx-background-color:#D3D3D3"
-        val playerWhiteText = utils.initLabel("WHITE", 15.0, fontWeight= FontWeight.BOLD)
-        val playerBlackText = utils.initLabel("BLACK", 15.0, fontWeight= FontWeight.BOLD)
-        playerWhiteText.textFill = Color.WHITE
-        playerBlackText.textFill = Color.BLACK
+        val playerWhiteText = createHeaderLabel(Color.WHITE)
+        val playerBlackText = createHeaderLabel(Color.BLACK)
 
         val playersNameHBox = utils.initHBox((WIDTH/4).toDouble(), 30.0, 30.0)
 
@@ -69,7 +67,7 @@ class NewGameFrame: Application() {
         playerBlackNameTextArea.maxWidth = WIDTH / 3.0
         playerBlackNameTextArea.maxHeight = 10.0
 
-        val playerStartertSelectHBox = utils.initHBox(10.0, 50.0, 40.0)
+        val playerStarterSelectHBox = utils.initHBox(10.0, 50.0, 40.0)
         val uiLabel2 = utils.initLabel("Choose the starter player:", 15.0)
 
         val players = FXCollections.observableArrayList("WHITE", "BLACK")
@@ -78,25 +76,25 @@ class NewGameFrame: Application() {
 
         val startGameButton = Button("New Game")
         startGameButton.setOnAction {
-            //Application.launch(NewGameFrame::class.java, *args)
+            //Get players' data
+            val pl1 = if (starterPlayerComboBox.selectionModel.selectedIndex == 0)
+                Player(Color.WHITE, playerWhiteNameTextArea.text) else Player(Color.BLACK, playerBlackNameTextArea.text)
+            val pl2 = if (starterPlayerComboBox.selectionModel.selectedIndex == 1)
+                Player(Color.WHITE, playerWhiteNameTextArea.text) else Player(Color.BLACK, playerBlackNameTextArea.text)
 
-            /*val newGameScene = Scene(NewGameFrame.get)
-            val newGameWindow = Stage()
-            newGameWindow.scene = newGameScene
-            newGameWindow.show()*/
-
-            //TODO
-            val newGameFrame = GameFrame()
-            val scene = Scene(newGameFrame.start(), 800.0, 600.0)
-            stage.setScene(scene)
-            stage.show()
+            //Starting the main game frame
+            val gameStage = Stage()
+            val gameFrame = GameFrame(mutableListOf(pl1, pl2))
+            gameFrame.start(gameStage)
+            //Closing the starter frame
+            primaryStage?.close()
         }
 
         uiMainVBox.children.addAll(uiTitleLabel, uiLabel1, playersHeaderHBox, playersNameHBox,
-            playerStartertSelectHBox, startGameButton)
+            playerStarterSelectHBox, startGameButton)
         playersHeaderHBox.children.addAll(playerWhiteText, playerBlackText)
         playersNameHBox.children.addAll(playerWhiteNameTextArea, playerBlackNameTextArea)
-        playerStartertSelectHBox.children.addAll(uiLabel2, starterPlayerComboBox)
+        playerStarterSelectHBox.children.addAll(uiLabel2, starterPlayerComboBox)
 
         parent.children.add(uiMainVBox)
     }

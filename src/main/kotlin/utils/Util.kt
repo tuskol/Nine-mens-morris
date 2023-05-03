@@ -6,6 +6,7 @@ import javafx.scene.control.Label
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
+import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 
@@ -42,4 +43,16 @@ fun initVBox(spacing: Double = 10.0,
     nVBox.minHeight = minHeight
     nVBox.alignment = Pos.CENTER
     return nVBox
+}
+
+fun createHeaderLabel(color: Color): Label{
+    val hLabel: Label
+    val text = when(color){
+        Color.WHITE -> "WHITE"
+        Color.BLACK -> "BLACK"
+        else -> "NOTANOPTION"
+    }
+    hLabel = initLabel(text, 15.0, fontWeight= FontWeight.BOLD)
+    hLabel.textFill = color
+    return hLabel
 }
